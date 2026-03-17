@@ -1,0 +1,81 @@
+import { useState } from 'react';
+import api from '../api/axios';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom'; 
+
+export default function Login() {
+    const navigate = useNavigate();
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [erreur, setErreur] = useState('');
+    const [succes, setSucces] = useState('');
+
+    const handleLogin = async (e) => {
+        e.preventDefault();
+        setErreur('');
+        setSucces('');
+        try {
+            // On utilise axios standard avec l'URL absolue pour éviter le /api
+            await axios.get('http://localhost:8000/sanctum/csrf-cookie', { 
+                withCredentials: true 
+            });
+            
+            // Ensuite, on envoie les identifiants
+            const reponse = await api.post('/login', { email, password });
+            
+            localStorage.setItem('token', reponse.data.token);
+            localStorage.setItem('user', JSON.stringify(reponse.data.user));
+            setSucces('Connexion réussie ! Redirection en cours...');
+
+            // Redirection vers le dashboard après une courte pause pour afficher le message de succès
+            setTimeout(() => {
+                navigate('/dashboard');
+            }, 1000);
+            
+        } catch (err) {
+            console.error("Détail de l'erreur :", err.response || err);
+            // On affiche le vrai message d'erreur renvoyé par Laravel s'il y en a un
+            setErreur(err.response?.data?.message || 'Identifiants incorrects ou problème de connexion.');
+        }
+    };
+
+    return (
+        <div className="flex justify-center items-center py-20 transition-colors duration-300">
+            <div className="bg-white dark:bg-carteSombre p-8 rounded-lg shadow-lg max-w-md w-full border border-gray-200 dark:border-gray-700">
+                <h2 className="text-2xl font-bold mb-6 text-center text-primaire dark:text-white">Connexion Administrateur</h2>
+                
+                {erreur && <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">{erreur}</div>}
+                {succes && <div className="bg-green-100 text-green-700 p-3 rounded mb-4 text-sm">{succes}</div>}
+
+                <form onSubmit={handleLogin} className="space-y-4">
+                    <div>
+                        <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Adresse Email</label>
+                        <input 
+                            type="email" 
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full p-3 rounded bg-gray-50 dark:bg-fondSombre text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-secondaire dark:focus:border-secondaire"
+                            required 
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Mot de passe</label>
+                        <input 
+                            type="password" 
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full p-3 rounded bg-gray-50 dark:bg-fondSombre text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:outline-none focus:border-secondaire dark:focus:border-secondaire"
+                            required 
+                        />
+                    </div>
+                    <button 
+                        type="submit" 
+                        className="w-full bg-primaire hover:bg-blue-800 dark:bg-secondaire dark:hover:bg-emerald-600 text-white font-bold py-3 px-4 rounded transition-colors"
+                    >
+                        Se connecter
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+}

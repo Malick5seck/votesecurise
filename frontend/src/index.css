@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Style par défaut (Mode Clair) */
+  body {
+    @apply bg-fond text-gray-900 transition-colors duration-300;
+  }
+  
+  /* Basculement automatique pour TOUTES les pages (Mode Sombre) */
+  .dark body {
+    @apply bg-fondSombre text-gray-100;
+  }
+}
+
+@layer components {
+  /* Séparateur horizontal pour structurer les différentes sections */
+  .separateur-page {
+    @apply w-full h-px bg-gray-300 dark:bg-gray-700 my-8;
+  }
+}

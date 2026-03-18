@@ -3,6 +3,9 @@ import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
 import Accueil from './pages/accueil';
 import Login from './pages/login';
 import Dashboard from './pages/dashboard';
+import ParticiperSondage from './pages/participerSondage';
+import ResultatsSondage from './pages/resultatsSondage';
+import Register from './pages/register';
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -32,8 +35,8 @@ function App() {
   return (
     <div className="min-h-screen flex flex-col transition-colors duration-300">
       
-      {/* --- NAVBAR --- */}
-      <header className="bg-primaire dark:bg-carteSombre text-white p-4 shadow-md transition-colors duration-300">
+      {/* --- NAVBAR FIXÉE EN HAUT (Sticky) --- */}
+      <header className="sticky top-0 z-50 bg-primaire dark:bg-carteSombre text-white p-4 shadow-md transition-colors duration-300">
         <div className="container mx-auto flex justify-between items-center">
           <Link to="/" className="font-bold text-2xl tracking-wide">Vote Sécurisé</Link>
           
@@ -74,7 +77,10 @@ function App() {
         <Routes>
           <Route path="/" element={<Accueil />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/sondage/:id" element={<ParticiperSondage />} />
+          <Route path="/sondage/:id/resultats" element={<ResultatsSondage />} />
         </Routes>
       </main>
 

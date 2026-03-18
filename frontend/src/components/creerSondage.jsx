@@ -1,53 +1,23 @@
 import { useState } from 'react';
 import api from '../api/axios';
 
-// La liste officielle de nos 7 types de questions
-const TYPES_QUESTIONS = [
-    { id: 'qcm', label: '🔘 QCM (une seule réponse)' },
-    { id: 'checkbox', label: '☑️ Cases à cocher (plusieurs réponses)' },
-    { id: 'text', label: '📝 Texte libre (court ou long)' },
-    { id: 'rating', label: '⭐ Note (1 à 5 ou 1 à 10)' },
-    { id: 'ranking', label: '↕️ Classement par glisser-déposer' },
-    { id: 'matrix', label: '📊 Tableau de questions (matrice)' },
-    { id: 'conditional', label: '🔀 Question conditionnelle' }
-];
-
 export default function CreerSondage({ onSondageCree }) {
-    // --- 1. CONFIGURATION DU SONDAGE ---
     const [titre, setTitre] = useState('');
     const [description, setDescription] = useState('');
-    const [estAnonyme, setEstAnonyme] = useState(true);
-    const [dateDebut, setDateDebut] = useState('');
     const [dateFin, setDateFin] = useState('');
-    const [messageRemerciement, setMessageRemerciement] = useState('Merci pour votre participation !');
+    const [estPublic, setEstPublic] = useState(true); 
 
-    // --- 2. LE CONSTRUCTEUR DE QUESTIONS ---
     const [questions, setQuestions] = useState([
-        { id: Date.now(), titre: '', type: 'qcm', options: ['', ''], obligatoire: true }
+        { id: Date.now(), titre: '', type: 'qcm', obligatoire: true, options: ['', ''] }
     ]);
 
-    const [erreur, setErreur] = useState('');
-    const [succes, setSucces] = useState('');
     const [chargement, setChargement] = useState(false);
+    const [erreur, setErreur] = useState('');
 
-    // --- LOGIQUE DE GESTION DES QUESTIONS ---
-    const ajouterQuestion = () => {
-        setQuestions([
-            ...questions, 
-            { id: Date.now(), titre: '', type: 'qcm', options: ['', ''], obligatoire: true }
-        ]);
-    };
-
-    const supprimerQuestion = (id) => {
-        if (questions.length > 1) {
-            setQuestions(questions.filter(q => q.id !== id));
-        }
-    };
-
-    const mettreAJourQuestion = (id, champ, valeur) => {
-        setQuestions(questions.map(q => q.id === id ? { ...q, [champ]: valeur } : q));
-    };
-
+    const ajouterQuestion = () => setQuestions([...questions, { id: Date.now(), titre: '', type: 'qcm', obligatoire: true, options: ['', ''] }]);
+    const supprimerQuestion = (id) => setQuestions(questions.filter(q => q.id !== id));
+    const mettreAJourQuestion = (id, champ, valeur) => setQuestions(questions.map(q => q.id === id ? { ...q, [champ]: valeur } : q));
+    const ajouterOption = (questionId) => setQuestions(questions.map(q => q.id === questionId ? { ...q, options: [...q.options, ''] } : q));
     const mettreAJourOption = (questionId, indexOption, valeur) => {
         setQuestions(questions.map(q => {
             if (q.id === questionId) {
@@ -59,197 +29,151 @@ export default function CreerSondage({ onSondageCree }) {
         }));
     };
 
-    const ajouterOption = (questionId) => {
-        setQuestions(questions.map(q => {
-            if (q.id === questionId) return { ...q, options: [...q.options, ''] };
-            return q;
-        }));
-    };
+    // Liste des types de questions qui nécessitent que le créateur tape des choix (options)
+    const typesAvecOptions = ['qcm', 'checkbox', 'likert', 'boolean', 'ranking', 'matrix'];
 
-    const supprimerOption = (questionId, indexOption) => {
-        setQuestions(questions.map(q => {
-            if (q.id === questionId && q.options.length > 2) {
-                return { ...q, options: q.options.filter((_, i) => i !== indexOption) };
-            }
-            return q;
-        }));
-    };
-
-    // --- SOUMISSION VERS LARAVEL ---
     const handleSubmit = async (e) => {
         e.preventDefault();
         setErreur('');
-        setSucces('');
-
-        // Petite vérification côté frontend
-        if (questions.length === 0) {
-            setErreur('Votre sondage doit contenir au moins une question.');
-            return;
-        }
-
         setChargement(true);
-
         try {
-            // Préparation du payload avec la nouvelle structure complexe
-            const payload = {
-                titre,
-                description,
-                est_anonyme: estAnonyme,
-                date_debut: dateDebut || null,
-                date_fin: dateFin || null,
-                message_remerciement: messageRemerciement,
-                questions: questions
-            };
-
-            // Envoi à l'API
-            await api.post('/sondages', payload);
-
-            // Succès !
-            setSucces('Le sondage a été créé avec succès !');
-            
-            // Réinitialisation du formulaire
-            setTitre(''); 
-            setDescription(''); 
-            setDateDebut(''); 
-            setDateFin('');
-            setQuestions([{ id: Date.now(), titre: '', type: 'qcm', options: ['', ''], obligatoire: true }]);
-
-            // Fermeture du formulaire dans le Dashboard après un court délai
-            if (onSondageCree) {
-                setTimeout(() => onSondageCree(), 1500);
-            }
-
+            await api.post('/sondages', {
+                titre, description, date_fin: dateFin || null, est_prive: !estPublic, est_anonyme: false,
+                questions: questions.map(q => ({
+                    titre: q.titre, type: q.type, obligatoire: q.obligatoire,
+                    // On envoie les options uniquement si le type de question le requiert
+                    options: typesAvecOptions.includes(q.type) ? q.options.filter(opt => opt.trim() !== '') : []
+                }))
+            });
+            if (onSondageCree) onSondageCree();
         } catch (err) {
-            setErreur(err.response?.data?.message || 'Erreur lors de la création du sondage. Vérifiez votre connexion.');
-            console.error(err);
+            setErreur(err.response?.data?.message || "Erreur lors de la création.");
         } finally {
             setChargement(false);
         }
     };
 
     return (
-        <div className="bg-white dark:bg-carteSombre rounded-lg transition-colors duration-300">
-            {erreur && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert"><p>{erreur}</p></div>}
-            {succes && <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert"><p>{succes}</p></div>}
-            
-            <form onSubmit={handleSubmit} className="space-y-8">
-                
-                {/* --- BLOC 1 : CONFIGURATION GLOBALE --- */}
-                <div className="bg-gray-50 dark:bg-fondSombre p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <h4 className="text-lg font-bold mb-4 text-primaire dark:text-secondaire border-b pb-2">1. Configuration du Sondage</h4>
-                    
-                    <div className="space-y-4">
+        <div className="max-w-4xl mx-auto py-8 text-gray-800 dark:text-gray-200">
+            <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Créer un sondage</h2>
+                <p className="text-gray-500 text-sm">Configurez votre sondage et ajoutez vos questions</p>
+            </div>
+
+            {erreur && <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 border border-red-200">{erreur}</div>}
+
+            <form onSubmit={handleSubmit}>
+                {/* BLOC 1 : INFOS */}
+                <div className="bg-white dark:bg-carteSombre p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm mb-8">
+                    <div className="mb-5">
+                        <label className="block text-sm font-semibold mb-2">Titre *</label>
+                        <input type="text" required value={titre} onChange={(e) => setTitre(e.target.value)} placeholder="Ex: Enquête de satisfaction" className="w-full p-2.5 bg-gray-50/50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    </div>
+                    <div className="mb-5">
+                        <label className="block text-sm font-semibold mb-2">Description</label>
+                        <textarea rows="3" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Décrivez votre sondage..." className="w-full p-2.5 bg-gray-50/50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-y"></textarea>
+                    </div>
+                    <div className="flex items-center gap-8">
                         <div>
-                            <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Titre du sondage</label>
-                            <input type="text" value={titre} onChange={(e) => setTitre(e.target.value)} className="w-full p-3 rounded bg-white dark:bg-carteSombre text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:border-secondaire focus:outline-none" placeholder="Ex: Enquête de satisfaction" required />
+                            <label className="block text-sm font-semibold mb-2">Date d'expiration</label>
+                            <input type="date" value={dateFin} onChange={(e) => setDateFin(e.target.value)} className="w-48 p-2.5 bg-gray-50/50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm text-gray-500" />
                         </div>
-
-                        <div>
-                            <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Message de remerciement</label>
-                            <input type="text" value={messageRemerciement} onChange={(e) => setMessageRemerciement(e.target.value)} className="w-full p-3 rounded bg-white dark:bg-carteSombre text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:border-secondaire focus:outline-none" />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Date de début (Auto)</label>
-                                <input type="datetime-local" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} className="w-full p-3 rounded bg-white dark:bg-carteSombre text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:border-secondaire focus:outline-none" />
-                            </div>
-                            <div>
-                                <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Date de fin (Auto)</label>
-                                <input type="datetime-local" value={dateFin} onChange={(e) => setDateFin(e.target.value)} className="w-full p-3 rounded bg-white dark:bg-carteSombre text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:border-secondaire focus:outline-none" />
-                            </div>
-                        </div>
-
-                        <div className="pt-2">
-                            <label className="flex items-center space-x-3 cursor-pointer">
-                                <input type="checkbox" checked={estAnonyme} onChange={(e) => setEstAnonyme(e.target.checked)} className="w-5 h-5 text-secondaire rounded focus:ring-secondaire" />
-                                <span className="text-gray-700 dark:text-gray-300 font-medium">Mode Anonyme (Cacher l'identité des votants)</span>
+                        <div className="flex items-center pt-6">
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" className="sr-only peer" checked={estPublic} onChange={(e) => setEstPublic(e.target.checked)} />
+                                <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-blue-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                                <span className="ml-3 text-sm font-medium">Sondage public</span>
                             </label>
                         </div>
                     </div>
                 </div>
 
-                {/* --- BLOC 2 : CONSTRUCTEUR DE QUESTIONS --- */}
-                <div className="space-y-6">
-                    <h4 className="text-lg font-bold text-primaire dark:text-secondaire border-b pb-2">2. Vos Questions</h4>
-
-                    {questions.map((question, index) => (
-                        <div key={question.id} className="p-6 border-l-4 border-secondaire bg-gray-50 dark:bg-fondSombre rounded-r-lg shadow-sm relative">
-                            
-                            {/* Bouton de suppression */}
-                            {questions.length > 1 && (
-                                <button type="button" onClick={() => supprimerQuestion(question.id)} className="absolute top-4 right-4 text-red-500 hover:text-red-700 font-bold">
-                                    Supprimer la question
-                                </button>
-                            )}
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                <div className="md:col-span-2">
-                                    <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Question {index + 1}</label>
-                                    <input type="text" value={question.titre} onChange={(e) => mettreAJourQuestion(question.id, 'titre', e.target.value)} className="w-full p-3 rounded bg-white dark:bg-carteSombre text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:border-secondaire focus:outline-none" placeholder="Saisissez votre question ici" required />
+                {/* BLOC 2 : QUESTIONS */}
+                <h3 className="text-xl font-bold mb-4">Questions</h3>
+                <div className="space-y-4 mb-4">
+                    {questions.map((q, index) => (
+                        <div key={q.id} className="bg-white dark:bg-carteSombre p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                            <div className="flex items-center gap-3 mb-5">
+                                <div className="text-gray-300 flex flex-col gap-0.5 cursor-grab">
+                                    <div className="flex gap-0.5"><div className="w-1 h-1 bg-gray-300 rounded-full"></div><div className="w-1 h-1 bg-gray-300 rounded-full"></div></div>
+                                    <div className="flex gap-0.5"><div className="w-1 h-1 bg-gray-300 rounded-full"></div><div className="w-1 h-1 bg-gray-300 rounded-full"></div></div>
+                                    <div className="flex gap-0.5"><div className="w-1 h-1 bg-gray-300 rounded-full"></div><div className="w-1 h-1 bg-gray-300 rounded-full"></div></div>
                                 </div>
-                                <div>
-                                    <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Type de question</label>
-                                    <select value={question.type} onChange={(e) => mettreAJourQuestion(question.id, 'type', e.target.value)} className="w-full p-3 rounded bg-white dark:bg-carteSombre text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:border-secondaire focus:outline-none">
-                                        {TYPES_QUESTIONS.map(type => (
-                                            <option key={type.id} value={type.id}>{type.label}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                                <span className="text-sm font-medium text-gray-500">Q{index + 1}</span>
+                                <input type="text" required value={q.titre} onChange={(e) => mettreAJourQuestion(q.id, 'titre', e.target.value)} placeholder="Texte de la question..." className="flex-grow p-2.5 bg-gray-50/50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                                
+                                {/* LE NOUVEAU MENU DÉROULANT COMPLET */}
+                                <select 
+                                    value={q.type} onChange={(e) => mettreAJourQuestion(q.id, 'type', e.target.value)}
+                                    className="w-48 p-2.5 bg-white dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                                >
+                                    <optgroup label="Choix">
+                                        <option value="qcm">Choix unique</option>
+                                        <option value="checkbox">Choix multiples</option>
+                                        <option value="boolean">Dichotomique (Oui/Non)</option>
+                                    </optgroup>
+                                    <optgroup label="Saisie libre">
+                                        <option value="text">Texte libre</option>
+                                        <option value="number">Numérique</option>
+                                        <option value="date">Date / Heure</option>
+                                    </optgroup>
+                                    <optgroup label="Échelles & Mesures">
+                                        <option value="rating">Note (Étoiles)</option>
+                                        <option value="likert">Échelle de Likert</option>
+                                        <option value="slider">Curseur (Slider)</option>
+                                    </optgroup>
+                                    <optgroup label="Avancé">
+                                        <option value="ranking">Classement (Ranking)</option>
+                                        <option value="matrix">Matrice (Grille)</option>
+                                        <option value="condition">Conditionnelle</option>
+                                    </optgroup>
+                                </select>
+
+                                {questions.length > 1 && (
+                                    <button type="button" onClick={() => supprimerQuestion(q.id)} className="text-red-400 hover:text-red-600 transition-colors px-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                                    </button>
+                                )}
                             </div>
 
-                            {/* Options pour QCM, Checkbox, et Ranking */}
-                            {['qcm', 'checkbox', 'ranking'].includes(question.type) && (
-                                <div className="mt-4 pl-4 border-l-2 border-gray-200 dark:border-gray-600">
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Options de réponse :</p>
-                                    {question.options.map((opt, i) => (
-                                        <div key={i} className="flex items-center space-x-2 mb-2">
-                                            <div className="w-4 h-4 rounded-full border border-gray-400"></div>
-                                            <input type="text" value={opt} onChange={(e) => mettreAJourOption(question.id, i, e.target.value)} className="flex-grow p-2 rounded bg-white dark:bg-carteSombre text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:border-secondaire focus:outline-none" placeholder={`Option ${i + 1}`} required />
-                                            {question.options.length > 2 && (
-                                                <button type="button" onClick={() => supprimerOption(question.id, i)} className="text-red-500 px-2 font-bold">X</button>
-                                            )}
+                            {/* AFFICHAGE CONDITIONNEL DES OPTIONS */}
+                            {typesAvecOptions.includes(q.type) && (
+                                <div className="ml-9 space-y-3">
+                                    {q.options.map((opt, oIndex) => (
+                                        <div key={oIndex} className="flex items-center gap-3">
+                                            <div className="w-4 h-4 rounded-full border-2 border-gray-300"></div>
+                                            <input 
+                                                type="text" value={opt} onChange={(e) => mettreAJourOption(q.id, oIndex, e.target.value)}
+                                                placeholder={q.type === 'boolean' && oIndex === 0 ? "Ex: Oui" : q.type === 'boolean' && oIndex === 1 ? "Ex: Non" : `Option ${oIndex + 1}`}
+                                                className="w-full max-w-2xl p-2.5 bg-gray-50/50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                            />
                                         </div>
                                     ))}
-                                    <button type="button" onClick={() => ajouterOption(question.id)} className="text-sm font-bold text-secondaire hover:text-emerald-600 mt-2">
+                                    <button type="button" onClick={() => ajouterOption(q.id)} className="text-[#3b82f6] hover:text-blue-700 text-sm font-medium mt-1 flex items-center gap-1">
                                         + Ajouter une option
                                     </button>
                                 </div>
                             )}
 
-                            {question.type === 'text' && (
-                                <div className="mt-4 p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 text-center text-gray-500">
-                                    L'utilisateur verra un champ de texte libre ici.
+                            {/* PETITS MESSAGES D'AIDE POUR LES NOUVEAUX TYPES */}
+                            {!typesAvecOptions.includes(q.type) && (
+                                <div className="ml-9 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
+                                    Le champ de saisie apparaîtra automatiquement pour le votant.
                                 </div>
                             )}
-
-                            {question.type === 'rating' && (
-                                <div className="mt-4 flex space-x-2 text-2xl text-gray-300">
-                                    ⭐ ⭐ ⭐ ⭐ ⭐
-                                </div>
-                            )}
-                            
-                            {['matrix', 'conditional'].includes(question.type) && (
-                                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/30 text-primaire dark:text-blue-200 rounded text-sm">
-                                    ⚙️ Interface de configuration avancée en cours de construction pour ce type.
-                                </div>
-                            )}
-
                         </div>
                     ))}
-
-                    <button type="button" onClick={ajouterQuestion} className="w-full py-4 border-2 border-dashed border-secondaire text-secondaire font-bold rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
-                        + AJOUTER UNE NOUVELLE QUESTION
-                    </button>
                 </div>
 
-                <button 
-                    type="submit" 
-                    disabled={chargement}
-                    className="w-full bg-primaire hover:bg-blue-800 dark:bg-secondaire dark:hover:bg-emerald-600 text-white font-bold py-4 px-4 rounded shadow-lg transition-colors text-lg disabled:opacity-50"
-                >
-                    {chargement ? 'Enregistrement en cours...' : 'Enregistrer le sondage'}
+                <button type="button" onClick={ajouterQuestion} className="w-full py-3.5 mb-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium">
+                    + Ajouter une question
                 </button>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <button type="button" onClick={() => { if(onSondageCree) onSondageCree(); }} className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors">Annuler</button>
+                    <button type="submit" disabled={chargement} className="px-6 py-2.5 bg-[#3b82f6] hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50">{chargement ? 'Création...' : 'Créer le sondage'}</button>
+                </div>
             </form>
         </div>
     );

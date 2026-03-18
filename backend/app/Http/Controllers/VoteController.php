@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Sondage;
 use App\Models\Vote;
+use App\Models\Reponse;
+use Illuminate\Support\Facades\DB;
 
 class VoteController extends Controller
 {
@@ -18,40 +20,69 @@ class VoteController extends Controller
             return response()->json(['message' => 'Ce sondage est terminé.'], 403);
         }
 
-        // --- SÉCURITÉ 2 : Vérification du Domaine Restreint (ex: @uadb.edu.sn) ---
-        if ($sondage->domaine_restreint) {
-            // On extrait le domaine de l'email de l'utilisateur
-            $domaineUtilisateur = substr(strrchr($user->email, "@"), 1);
-            
-            if ($domaineUtilisateur !== $sondage->domaine_restreint) {
-                return response()->json([
-                    'message' => "Accès refusé. Vous devez utiliser une adresse email se terminant par @{$sondage->domaine_restreint}."
-                ], 403);
-            }
+        // --- SÉCURITÉ 2 : Anti Double-Vote ---
+        // On vérifie par ID utilisateur (et on pourrait aussi vérifier par IP si besoin)
+        $dejaVote = false;
+        if ($user) {
+            $dejaVote = Vote::where('user_id', $user->id)
+                            ->where('sondage_id', $sondage->id)
+                            ->exists();
         }
-
-        // --- SÉCURITÉ 3 : Anti Double-Vote (Vérification Backend) ---
-        $dejaVote = Vote::where('user_id', $user->id)
-                        ->where('sondage_id', $sondage->id)
-                        ->exists();
 
         if ($dejaVote) {
             return response()->json(['message' => 'Vous avez déjà voté pour ce sondage.'], 403);
         }
 
-        // --- VALIDATION DU VOTE ---
-        $request->validate([
-            'option_sondage_id' => 'required|exists:options_sondage,id'
+        // --- SÉCURITÉ 3 : Validation du format (avec la nouveauté est_anonyme) ---
+        $validated = $request->validate([
+            'reponses' => 'required|array',
+            'reponses.*.question_id' => 'required|exists:questions,id',
+            'reponses.*.option_id' => 'nullable|exists:options,id',
+            'reponses.*.valeur_texte' => 'nullable|string',
+            'est_anonyme' => 'boolean' // <-- NOUVEAUTÉ : On autorise le champ anonyme
         ]);
 
-        // --- ENREGISTREMENT ---
-        Vote::create([
-            'user_id' => $user->id,
-            'sondage_id' => $sondage->id,
-            'option_sondage_id' => $request->option_sondage_id,
-            'adresse_ip' => $request->ip() // Optionnel, mais bien pour tracer
-        ]);
+        // --- ENREGISTREMENT SÉCURISÉ ---
+        try {
+            DB::beginTransaction();
 
-        return response()->json(['message' => 'Votre vote a été enregistré avec succès !'], 201);
+            // 1. Création du "Ticket de vote"
+            $vote = Vote::create([
+                'user_id' => $user ? $user->id : null,
+                'sondage_id' => $sondage->id,
+                'adresse_ip' => $request->ip(),
+                'est_anonyme' => $request->est_anonyme ?? false // <-- NOUVEAUTÉ : On sauvegarde le choix
+            ]);
+
+            // 2. Enregistrement du détail des réponses (QCM, Texte, Checkbox...)
+            foreach ($validated['reponses'] as $rep) {
+                Reponse::create([
+                    'vote_id' => $vote->id,
+                    'question_id' => $rep['question_id'],
+                    'option_id' => $rep['option_id'] ?? null,
+                    'valeur_texte' => $rep['valeur_texte'] ?? null,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json(['message' => 'Votre vote a été enregistré avec succès !'], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Erreur lors de l\'enregistrement de votre vote.', 'error' => $e->getMessage()], 500);
+        }
+    }
+    
+    // --- RÉCUPÉRER L'HISTORIQUE DES VOTES DE L'UTILISATEUR ---
+    public function mesVotes(Request $request)
+    {
+        // On récupère tous les tickets de vote de cet utilisateur, en incluant les infos du sondage
+        $votes = Vote::with('sondage')
+                    ->where('user_id', $request->user()->id)
+                    ->latest() // Du plus récent au plus ancien
+                    ->get();
+
+        return response()->json($votes);
     }
 }

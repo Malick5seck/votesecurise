@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import api from '../api/axios';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom'; 
+// CORRECTION 1 : J'ai ajouté Link ici !
+import { useNavigate, Link } from 'react-router-dom'; 
 
 export default function Login() {
     const navigate = useNavigate();
@@ -15,26 +16,22 @@ export default function Login() {
         setErreur('');
         setSucces('');
         try {
-            // On utilise axios standard avec l'URL absolue pour éviter le /api
             await axios.get('http://localhost:8000/sanctum/csrf-cookie', { 
                 withCredentials: true 
             });
             
-            // Ensuite, on envoie les identifiants
             const reponse = await api.post('/login', { email, password });
             
             localStorage.setItem('token', reponse.data.token);
             localStorage.setItem('user', JSON.stringify(reponse.data.user));
             setSucces('Connexion réussie ! Redirection en cours...');
 
-            // Redirection vers le dashboard après une courte pause pour afficher le message de succès
             setTimeout(() => {
                 navigate('/dashboard');
             }, 1000);
             
         } catch (err) {
             console.error("Détail de l'erreur :", err.response || err);
-            // On affiche le vrai message d'erreur renvoyé par Laravel s'il y en a un
             setErreur(err.response?.data?.message || 'Identifiants incorrects ou problème de connexion.');
         }
     };
@@ -42,7 +39,7 @@ export default function Login() {
     return (
         <div className="flex justify-center items-center py-20 transition-colors duration-300">
             <div className="bg-white dark:bg-carteSombre p-8 rounded-lg shadow-lg max-w-md w-full border border-gray-200 dark:border-gray-700">
-                <h2 className="text-2xl font-bold mb-6 text-center text-primaire dark:text-white">Connexion Administrateur</h2>
+                <h2 className="text-2xl font-bold mb-6 text-center text-primaire dark:text-white">Connexion</h2>
                 
                 {erreur && <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">{erreur}</div>}
                 {succes && <div className="bg-green-100 text-green-700 p-3 rounded mb-4 text-sm">{succes}</div>}
@@ -74,7 +71,18 @@ export default function Login() {
                     >
                         Se connecter
                     </button>
+                    
                 </form>
+                
+                {/* CORRECTION 2 : Le bon texte et la bonne redirection vers l'inscription */}
+                <div className="mt-6 text-center border-t border-gray-200 dark:border-gray-700 pt-4">
+                    <p className="text-gray-600 dark:text-gray-400">
+                        Vous n'avez pas encore de compte ?{' '}
+                        <Link to="/register" className="text-primaire hover:text-blue-800 dark:text-secondaire dark:hover:text-emerald-400 font-bold hover:underline">
+                            S'inscrire
+                        </Link>
+                    </p>
+                </div>
             </div>
         </div>
     );

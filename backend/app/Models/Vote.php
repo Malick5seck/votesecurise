@@ -12,7 +12,7 @@ class Vote extends Model
     protected $table = 'votes';
 
     // On a retiré option_sondage_id, mais on garde adresse_ip
-    protected $fillable = ['user_id', 'sondage_id', 'adresse_ip'];
+    protected $fillable = ['user_id', 'sondage_id', 'adresse_ip','est_anonyme']; // <-- NOUVEAUTÉ : On ajoute le champ anonyme
 
     public function user()
     {

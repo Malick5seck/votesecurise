@@ -14,6 +14,8 @@ class Sondage extends Model
 
     public function user() { return $this->belongsTo(User::class); }
     
-    // Un sondage possède désormais plusieurs questions (et plus directement des options)
     public function questions() { return $this->hasMany(Question::class); }
+
+    // LA NOUVELLE RELATION INDISPENSABLE POUR LES STATISTIQUES :
+    public function votes() { return $this->hasMany(Vote::class); }
 }

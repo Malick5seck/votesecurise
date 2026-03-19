@@ -20,3 +20,20 @@
     @apply w-full h-px bg-gray-300 dark:bg-gray-700 my-8;
   }
 }
+/* --- REGLES D'IMPRESSION (EXPORT PDF) --- */
+@media print {
+    /* 1. On cache définitivement le header (Navbar) et le footer */
+    header, footer {
+        display: none !important;
+    }
+
+    /* 2. On s'assure que le fond de la page est bien blanc (pour économiser l'encre et faire propre) */
+    body {
+        background-color: white !important;
+    }
+
+    /* 3. On enlève les marges par défaut du navigateur pour utiliser tout l'espace du PDF */
+    @page {
+        margin: 1cm;
+    }
+}

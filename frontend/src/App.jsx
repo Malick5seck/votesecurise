@@ -10,20 +10,17 @@ import Register from './pages/register';
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   
-  // Outils de navigation
   const navigate = useNavigate();
-  const location = useLocation(); // Permet de rafraîchir la navbar au changement de page
+  const location = useLocation();
 
-  // On vérifie si un token est présent dans le navigateur
   const estConnecte = !!localStorage.getItem('token');
 
-  // Fonction de déconnexion
   const handleLogout = () => {
-    localStorage.removeItem('token'); // On supprime la clé de sécurité
-    navigate('/'); // On renvoie vers l'accueil
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/');
   };
 
-  // Gestion du mode sombre
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -32,39 +29,43 @@ function App() {
     }
   }, [isDarkMode]);
 
+  const getLinkStyle = (path) => {
+    const isActive = location.pathname === path;
+    return `px-4 py-2 rounded-lg font-medium transition-colors ${
+      isActive 
+        ? 'bg-white text-primaire dark:bg-gray-800 dark:text-white'
+        : 'text-white hover:bg-white/20 dark:hover:bg-gray-700'
+    }`;
+  };
+
   return (
     <div className="min-h-screen flex flex-col transition-colors duration-300">
       
-      {/* --- NAVBAR FIXÉE EN HAUT (Sticky) --- */}
-      <header className="sticky top-0 z-50 bg-primaire dark:bg-carteSombre text-white p-4 shadow-md transition-colors duration-300">
+      {/* NAVBAR */}
+      <header className="sticky top-0 z-50 bg-primaire dark:bg-carteSombre text-white p-4 shadow-md transition-colors duration-300 print:hidden">
         <div className="container mx-auto flex justify-between items-center">
           <Link to="/" className="font-bold text-2xl tracking-wide">Vote Sécurisé</Link>
           
-          <div className="flex items-center space-x-6">
-            
-            {/* AFFICHAGE DYNAMIQUE SELON L'ÉTAT DE CONNEXION */}
+          <div className="flex items-center space-x-2 md:space-x-4">
             {estConnecte ? (
-              <>
-                <Link to="/dashboard" className="hover:text-secondaire transition-colors font-medium">
-                  Tableau de bord
-                </Link>
-                <button 
-                  onClick={handleLogout} 
-                  className="hover:text-red-400 transition-colors font-medium"
-                >
+              <nav className="flex items-center space-x-1 md:space-x-2 mr-4">
+                <Link to="/" className={getLinkStyle('/')}>Accueil</Link>
+                <Link to="/mes-sondages" className={getLinkStyle('/mes-sondages')}>Mes sondages</Link>
+                <Link to="/creer" className={getLinkStyle('/creer')}>Créer</Link>
+                <Link to="/profil" className={getLinkStyle('/profil')}>Profil</Link>
+                <button onClick={handleLogout} className="px-4 py-2 hover:bg-red-500/80 rounded-lg transition-colors font-medium ml-2">
                   Déconnexion
                 </button>
-              </>
+              </nav>
             ) : (
-              <Link to="/login" className="hover:text-secondaire transition-colors font-medium">
+              <Link to="/login" className="hover:text-secondaire transition-colors font-medium mr-4">
                 Se connecter
               </Link>
             )}
 
-            {/* Bouton Mode Sombre */}
             <button 
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className="bg-secondaire hover:bg-emerald-600 text-white font-medium px-4 py-2 rounded shadow transition-colors ml-4"
+              className="bg-secondaire hover:bg-emerald-600 text-white font-medium px-4 py-2 rounded shadow transition-colors"
             >
               {isDarkMode ? '☀️ Mode Clair' : '🌙 Mode Sombre'}
             </button>
@@ -72,20 +73,23 @@ function App() {
         </div>
       </header>
 
-      {/* --- CONTENU DYNAMIQUE --- */}
+      {/* ROUTES */}
       <main className="flex-grow bg-fond dark:bg-fondSombre transition-colors duration-300">
         <Routes>
           <Route path="/" element={<Accueil />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/mes-sondages" element={<Dashboard />} />
+          <Route path="/creer" element={<Dashboard />} />
+          <Route path="/profil" element={<Dashboard />} />
           <Route path="/sondage/:id" element={<ParticiperSondage />} />
           <Route path="/sondage/:id/resultats" element={<ResultatsSondage />} />
         </Routes>
       </main>
 
-      {/* --- FOOTER --- */}
-      <footer className="bg-primaire dark:bg-carteSombre text-white p-6 text-center mt-auto transition-colors duration-300">
+      {/* FOOTER */}
+      <footer className="bg-primaire dark:bg-carteSombre text-white p-6 text-center mt-auto transition-colors duration-300 print:hidden">
         <p>© 2026 - Plateforme de Sondages Sécurisés</p>
       </footer>
 

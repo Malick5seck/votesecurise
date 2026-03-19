@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 
 export default function ResultatsSondage() {
     const { id } = useParams();
@@ -16,7 +17,7 @@ export default function ResultatsSondage() {
                 const reponse = await api.get(`/sondages/${id}/resultats`);
                 setDonnees(reponse.data);
             } catch (err) {
-                setErreur(err.response?.data?.message || "Erreur lors du chargement des résultats. Vous n'avez peut-être pas les droits.");
+                setErreur(err.response?.data?.message || "Erreur lors du chargement des résultats.");
             } finally {
                 setChargement(false);
             }
@@ -25,19 +26,24 @@ export default function ResultatsSondage() {
         fetchResultats();
     }, [id]);
 
+    // Fonction d'exportation PDF magique
+    const exporterPDF = () => {
+        if (!donnees) return;
+        const titreOriginal = document.title;
+        const nomFichier = `Resultats_${donnees.sondage.titre.replace(/\s+/g, '_')}`;
+        document.title = nomFichier;
+        window.print();
+        document.title = titreOriginal;
+    };
+
     if (chargement) return <div className="text-center py-20 text-gray-500 text-lg">Analyse des résultats en cours...</div>;
     
     if (erreur) return (
         <div className="max-w-2xl mx-auto py-20 px-4 text-center">
-            <div className="bg-red-50 dark:bg-red-900/20 p-8 rounded-xl border border-red-200 dark:border-red-800">
-                <h2 className="text-xl font-bold text-red-700 dark:text-red-400 mb-4">Accès refusé</h2>
-                <p className="text-red-600 dark:text-red-300 mb-6">{erreur}</p>
-                {/* LE FAMEUX BOUTON RETOUR (Version Erreur) */}
-                <button 
-                    onClick={() => navigate('/')} 
-                    className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-bold py-2 px-6 rounded-lg transition-colors flex items-center justify-center gap-2 mx-auto"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" /></svg>
+            <div className="bg-red-50 p-8 rounded-xl border border-red-200">
+                <h2 className="text-xl font-bold text-red-700 mb-4">Accès refusé</h2>
+                <p className="text-red-600 mb-6">{erreur}</p>
+                <button onClick={() => navigate('/')} className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg transition-colors mx-auto">
                     Retour à l'accueil
                 </button>
             </div>
@@ -45,102 +51,163 @@ export default function ResultatsSondage() {
     );
 
     const { sondage, statistiques } = donnees;
+    const couleursBarres = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+
+    // Calcul du nombre total de réponses
+    const totalReponses = statistiques.reduce((total, stat) => {
+        if (stat.options) {
+            return total + stat.options.reduce((sum, opt) => sum + opt.votes, 0);
+        }
+        return total;
+    }, 0);
 
     return (
-        <div className="max-w-4xl mx-auto py-10 px-4 transition-colors duration-300">
+        <div className="max-w-5xl mx-auto py-10 px-4 transition-colors duration-300">
             
-            {/* EN-TÊTE AVEC LE BOUTON RETOUR */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                <div>
-                    <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">
-                        Résultats : {sondage.titre}
+            {/* EN-TÊTE VERSION PDF (Invisible à l'écran) */}
+            <div className="hidden print:block mb-8 border-b pb-4 text-center">
+                <h1 className="text-3xl font-extrabold text-black mb-2">{sondage.titre}</h1>
+                <p className="text-gray-600">Rapport des résultats | {sondage.total_votes} participants uniques</p>
+                <p className="text-gray-500 text-sm mt-1">Généré le {new Date().toLocaleDateString()}</p>
+            </div>
+
+            {/* EN-TÊTE ÉCRAN : IDENTIQUE À TON IMAGE, MAIS AVEC BOUTON ROUGE */}
+            <div className="flex flex-col md:flex-row justify-between items-start mb-10 gap-6 print:hidden">
+                <div className="flex-1">
+                    <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">
+                        {sondage.titre}
                     </h1>
-                    <p className="text-gray-600 dark:text-gray-400 font-medium">
-                        Total des participants : <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 px-3 py-1 rounded-full text-sm">{sondage.total_votes} votes</span>
+                    
+                    <p className="text-lg text-gray-500 dark:text-gray-400 mb-5">
+                        {sondage.description || "Consultez les statistiques détaillées de ce sondage."}
                     </p>
+
+                    {/* LES BADGES GRIS POUR LES VOTANTS ET RÉPONSES */}
+                    <div className="flex flex-wrap gap-3">
+                        <span className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                            </svg>
+                            {sondage.total_votes} votants
+                        </span>
+                        <span className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-4 py-1.5 rounded-full text-sm font-bold">
+                            {totalReponses > 0 ? totalReponses : sondage.total_votes} réponses au total
+                        </span>
+                    </div>
                 </div>
                 
-                {/* LE FAMEUX BOUTON RETOUR (Version Haut de page) */}
-                <button 
-                    onClick={() => navigate('/')} 
-                    className="bg-white hover:bg-gray-50 dark:bg-carteSombre dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 font-bold py-2.5 px-5 rounded-xl shadow-sm transition-all flex items-center gap-2"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
-                    Retour à l'accueil
-                </button>
+                {/* LE BOUTON EXPORT PDF EN ROUGE (bg-red-600) */}
+                <div className="flex gap-3 mt-2 md:mt-0">
+                    <button 
+                        onClick={exporterPDF} 
+                        className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition-all flex items-center gap-2 text-sm"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m.75 12l3 3m0 0l3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+                        Export PDF
+                    </button>
+                </div>
             </div>
 
-            {/* LISTE DES STATISTIQUES */}
+            {/* LISTE DES CARTES DE QUESTIONS */}
             <div className="space-y-8">
-                {statistiques.map((stat, index) => (
-                    <div key={stat.id} className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">
-                            {index + 1}. {stat.titre}
-                        </h3>
+                {statistiques.map((stat, index) => {
+                    const nbReponsesQuestion = stat.options ? stat.options.reduce((sum, opt) => sum + opt.votes, 0) : 0;
 
-                        {/* AFFICHAGE DES OPTIONS (Barres de progression pour QCM, Checkbox, etc.) */}
-                        {stat.options && (
-                            <div className="space-y-4">
-                                {stat.options.map(opt => (
-                                    <div key={opt.id}>
-                                        <div className="flex justify-between text-sm mb-1">
-                                            <span className="font-medium text-gray-700 dark:text-gray-300">{opt.contenu}</span>
-                                            <span className="text-gray-500 font-bold">{opt.pourcentage}% ({opt.votes} votes)</span>
-                                        </div>
-                                        {/* Jauge de progression */}
-                                        <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-3">
-                                            <div 
-                                                className="bg-[#3b82f6] h-3 rounded-full transition-all duration-1000" 
-                                                style={{ width: `${opt.pourcentage}%` }}
-                                            ></div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* AFFICHAGE DES MOYENNES (Pour Note, Rating, Slider) */}
-                        {stat.moyenne !== undefined && (
-                            <div className="flex items-center gap-4 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
-                                <div className="text-4xl">📊</div>
-                                <div>
-                                    <p className="text-sm text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wide">Moyenne obtenue</p>
-                                    <p className="text-3xl font-extrabold text-blue-900 dark:text-blue-300">
-                                        {stat.moyenne} <span className="text-lg font-medium text-blue-700 dark:text-blue-400">/ 5 ou 100</span>
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* AFFICHAGE DES TEXTES (Dernières réponses libres) */}
-                        {stat.reponses_textes && (
-                            <div className="mt-4">
-                                {stat.reponses_textes.length === 0 ? (
-                                    <p className="text-gray-500 italic text-sm">Aucune réponse écrite pour l'instant.</p>
-                                ) : (
-                                    <div className="space-y-3">
-                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Dernières réponses :</p>
-                                        {stat.reponses_textes.map((texte, i) => (
-                                            <div key={i} className="bg-gray-50 dark:bg-fondSombre p-4 rounded-lg border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300 italic text-sm">
-                                                « {texte} »
-                                            </div>
-                                        ))}
-                                    </div>
+                    return (
+                        <div key={stat.id} className="bg-white dark:bg-carteSombre p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 break-inside-avoid">
+                            
+                            {/* EN-TÊTE DE LA CARTE : Q1 Bleu et Badge du nombre de réponses */}
+                            <div className="flex justify-between items-start gap-4 mb-8">
+                                <h3 className="text-xl font-medium text-gray-900 dark:text-white leading-relaxed">
+                                    <span className="text-blue-500 font-bold mr-3">Q{index + 1}</span>
+                                    {stat.titre}
+                                </h3>
+                                
+                                {nbReponsesQuestion > 0 && (
+                                    <span className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-300 text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap shadow-sm">
+                                        {nbReponsesQuestion} rép.
+                                    </span>
                                 )}
                             </div>
-                        )}
-                    </div>
-                ))}
+
+                            {/* GRAPHIQUE RECHARTS */}
+                            {stat.options && stat.options.length > 0 && (
+                                <div className="h-64 mt-2">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart 
+                                            data={stat.options} 
+                                            margin={{ top: 0, right: 20, left: -20, bottom: 0 }}
+                                        >
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                                            <XAxis 
+                                                dataKey="contenu" 
+                                                tick={{ fill: '#6b7280', fontSize: 13 }} 
+                                                axisLine={false} 
+                                                tickLine={false} 
+                                            />
+                                            <YAxis 
+                                                allowDecimals={false} 
+                                                tick={{ fill: '#6b7280', fontSize: 13 }} 
+                                                axisLine={false} 
+                                                tickLine={false} 
+                                            />
+                                            <Tooltip 
+                                                cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }}
+                                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                                                formatter={(value, name, props) => [`${value} votes (${props.payload.pourcentage}%)`, 'Résultat']}
+                                            />
+                                            <Bar dataKey="votes" radius={[4, 4, 0, 0]} maxBarSize={50}>
+                                                {stat.options.map((entry, i) => (
+                                                    <Cell key={`cell-${i}`} fill={couleursBarres[i % couleursBarres.length]} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            )}
+
+                            {/* MOYENNES (Si c'est une question de type note) */}
+                            {stat.moyenne !== undefined && (
+                                <div className="flex items-center gap-4 bg-gray-50 dark:bg-fondSombre p-5 rounded-xl border border-gray-100 dark:border-gray-800 mt-4">
+                                    <div className="text-3xl">🎯</div>
+                                    <div>
+                                        <p className="text-sm text-gray-500 font-bold uppercase tracking-wide mb-1">Score moyen</p>
+                                        <p className="text-2xl font-extrabold text-gray-900 dark:text-white">
+                                            {stat.moyenne} <span className="text-base font-medium text-gray-500">/ 5 ou 100</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* RÉPONSES TEXTES */}
+                            {stat.reponses_textes && (
+                                <div className="mt-6">
+                                    {stat.reponses_textes.length === 0 ? (
+                                        <p className="text-gray-400 italic text-sm">Aucune réponse écrite.</p>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {stat.reponses_textes.map((texte, i) => (
+                                                <div key={i} className="bg-gray-50 dark:bg-fondSombre px-5 py-4 rounded-xl border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300 text-sm">
+                                                    {texte}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
 
-            {/* LE FAMEUX BOUTON RETOUR (Version Bas de page) */}
-            <div className="mt-12 text-center border-t border-gray-200 dark:border-gray-700 pt-8">
+            {/* LE GROS BOUTON BLEU RETOUR */}
+            <div className="mt-12 text-center border-t border-gray-200 dark:border-gray-700 pt-8 print:hidden">
                 <button 
-                    onClick={() => navigate('/')} 
+                    onClick={() => navigate('/mes-sondages')} 
                     className="bg-[#3b82f6] hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl shadow-md transition-transform transform hover:-translate-y-1 flex items-center justify-center gap-2 mx-auto"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
-                    Retourner à la page d'accueil
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125-.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
+                    Retour aux sondages
                 </button>
             </div>
 

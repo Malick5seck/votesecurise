@@ -41,5 +41,5 @@ Route::middleware('auth:sanctum')->post('/sondages/{id}/voter', [SondageControll
     Route::get('/users', [UserController::class, 'index']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
     // Historique des votes de l'utilisateur connecté
-    Route::get('/mes-votes', [\App\Http\Controllers\VoteController::class, 'mesVotes']);
+    Route::get('/mes-votes', [VoteController::class, 'mesVotes']);
 });

@@ -11,7 +11,6 @@ export default function ParticiperSondage() {
     const [erreur, setErreur] = useState('');
     const [aDejaVote, setADejaVote] = useState(false);
     
-    // NOUVEAU : État pour afficher la carte de succès
     const [voteReussi, setVoteReussi] = useState(false);
     const [erreurSubmit, setErreurSubmit] = useState('');
     
@@ -89,7 +88,6 @@ export default function ParticiperSondage() {
                 reponses: formatReponses,
                 est_anonyme: voterAnonymement 
             });
-            // AU LIEU DU ALERT : On déclenche l'affichage de la carte de succès !
             setVoteReussi(true);
         } catch (err) {
             setErreurSubmit(err.response?.data?.message || "Erreur lors de l'enregistrement du vote.");
@@ -98,11 +96,27 @@ export default function ParticiperSondage() {
         }
     };
 
-    // --- LES DIFFÉRENTES VUES (Chargement, Erreur, Déjà Voté, Succès) ---
+    // --- LES DIFFÉRENTES VUES (Chargement, Erreur, Expiré, Déjà Voté, Succès) ---
     
     if (chargement) return <div className="text-center py-20 text-gray-500 text-lg">Chargement du sondage...</div>;
     if (erreur) return <div className="text-center py-20 text-red-500 text-lg font-bold">{erreur}</div>;
     
+    // NOUVELLE VUE : SONDAGE EXPIRÉ ⛔
+    const estExpire = sondage?.date_fin ? new Date(sondage.date_fin) < new Date() : false;
+    
+    if (estExpire) return (
+        <div className="max-w-2xl mx-auto py-20 px-4 text-center transition-colors duration-300">
+            <div className="bg-red-50 dark:bg-red-900/20 p-10 rounded-2xl shadow-lg border border-red-200 dark:border-red-800">
+                <div className="text-6xl mb-4">⏳</div>
+                <h2 className="text-2xl font-bold text-red-700 dark:text-red-400 mb-2">Sondage clôturé</h2>
+                <p className="text-red-600 dark:text-red-300 mb-8">Ce sondage a atteint sa date d'expiration. Aucune nouvelle participation n'est autorisée.</p>
+                <button onClick={() => navigate('/')} className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-bold py-3 px-8 rounded-xl transition-colors">
+                    Retour à l'accueil
+                </button>
+            </div>
+        </div>
+    );
+
     // Vue : Déjà Voté
     if (aDejaVote) return (
         <div className="max-w-2xl mx-auto py-20 px-4 text-center transition-colors duration-300">
@@ -117,7 +131,7 @@ export default function ParticiperSondage() {
         </div>
     );
 
-    // NOUVELLE VUE : Succès du vote ! 🎉
+    // Vue : Succès du vote ! 🎉
     if (voteReussi) return (
         <div className="max-w-2xl mx-auto py-20 px-4 text-center transition-colors duration-300">
             <div className="bg-white dark:bg-carteSombre p-10 rounded-2xl shadow-xl border border-green-100 dark:border-green-900/30 transform transition-all">
@@ -161,7 +175,6 @@ export default function ParticiperSondage() {
 
             <form onSubmit={handleSubmit} className="bg-white dark:bg-carteSombre p-8 rounded-b-2xl shadow-md border border-t-0 border-gray-200 dark:border-gray-700">
                 
-                {/* Affichage d'une erreur si la soumission échoue */}
                 {erreurSubmit && (
                     <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded">
                         <p className="font-bold">Erreur</p>

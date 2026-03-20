@@ -129,7 +129,7 @@ class SondageController extends Controller
                 'type' => $question->type,
             ];
 
-            // 🚨 MISE À JOUR ICI : Pourcentage pour les nouveaux types à choix
+            // Pourcentage pour les nouveaux types à choix
             if (in_array($question->type, ['qcm', 'checkbox', 'likert', 'boolean', 'ranking', 'matrix'])) {
                 $optionsStats = [];
                 foreach ($question->options as $option) {
@@ -146,8 +146,7 @@ class SondageController extends Controller
                 }
                 $statsQuestion['options'] = $optionsStats;
             } 
-            
-            // 🚨 MISE À JOUR ICI : Affichage des textes pour date, nombre et texte libre
+            // Affichage des textes pour date, nombre et texte libre
             elseif (in_array($question->type, ['text', 'number', 'date'])) {
                 $statsQuestion['reponses_textes'] = Reponse::where('question_id', $question->id)
                                                 ->whereNotNull('valeur_texte')
@@ -155,8 +154,7 @@ class SondageController extends Controller
                                                 ->take(10)
                                                 ->pluck('valeur_texte');
             } 
-            
-            // 🚨 MISE À JOUR ICI : Moyenne mathématique pour les notes et les sliders
+            // Moyenne mathématique pour les notes et les sliders
             elseif (in_array($question->type, ['rating', 'slider'])) {
                 $moyenne = Reponse::where('question_id', $question->id)->avg('valeur_texte');
                 $statsQuestion['moyenne'] = $moyenne ? round($moyenne, 1) : 0;
@@ -165,13 +163,74 @@ class SondageController extends Controller
             $statistiques[] = $statsQuestion;
         }
 
+        // 🚨 NOUVEAUTÉ POUR LE PDF : Historique détaillé de chaque participant
+        $votesDetail = $sondage->votes()->with(['user', 'reponses.option'])->orderBy('created_at', 'asc')->get();
+        
+        $participants = $votesDetail->map(function ($vote) use ($sondage) {
+            $reponsesFormatees = [];
+            foreach ($sondage->questions as $question) {
+                $reps = $vote->reponses->where('question_id', $question->id);
+                $texteReps = [];
+                foreach ($reps as $r) {
+                    if ($r->option) $texteReps[] = $r->option->contenu;
+                    elseif ($r->valeur_texte !== null) $texteReps[] = $r->valeur_texte;
+                }
+                $reponsesFormatees[$question->id] = count($texteReps) > 0 ? implode(' | ', $texteReps) : '-';
+            }
+
+            return [
+                'date' => $vote->created_at->format('d/m/Y H:i:s'),
+                'identite' => ($sondage->est_anonyme || $vote->est_anonyme) ? 'Anonyme' : ($vote->user ? $vote->user->name : 'Visiteur'),
+                'reponses' => $reponsesFormatees
+            ];
+        });
+
         return response()->json([
             'sondage' => [
                 'id' => $sondage->id,
                 'titre' => $sondage->titre,
                 'total_votes' => $totalVotes,
+                'est_anonyme' => $sondage->est_anonyme // On envoie l'info à React
             ],
-            'statistiques' => $statistiques
+            'statistiques' => $statistiques,
+            'participants' => $participants // On envoie la liste pour le tableau PDF
         ]);
+    }
+
+    // --- 5. SUPPRIMER UN SONDAGE ---
+    public function destroy(Request $request, $id)
+    {
+        $sondage = Sondage::findOrFail($id);
+
+        // SÉCURITÉ : On vérifie que seul le créateur peut supprimer son sondage
+        if ($sondage->user_id !== $request->user()->id) {
+            return response()->json([
+                'message' => 'Action non autorisée. Vous n\'êtes pas le propriétaire de ce sondage.'
+            ], 403);
+        }
+
+        try {
+            // Laravel va supprimer le sondage
+            $sondage->delete();
+            
+            return response()->json(['message' => 'Sondage supprimé avec succès.']);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Erreur lors de la suppression du sondage.', 
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    // --- 6. FORCER LA CLÔTURE D'UN SONDAGE (Super Admin) ---
+    public function cloturer(Request $request, $id)
+    {
+        if ($request->user()->role !== 'super_admin') {
+            return response()->json(['message' => 'Accès refusé.'], 403);
+        }
+
+        $sondage = Sondage::findOrFail($id);
+        $sondage->update(['date_fin' => now()]); // On met la date de fin à l'instant T
+
+        return response()->json(['message' => 'Le sondage a été clôturé avec succès.']);
     }
 }

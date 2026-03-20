@@ -6,6 +6,8 @@ export default function CreerSondage({ onSondageCree }) {
     const [description, setDescription] = useState('');
     const [dateFin, setDateFin] = useState('');
     const [estPublic, setEstPublic] = useState(true); 
+    // NOUVEAU : État pour l'anonymat
+    const [estAnonyme, setEstAnonyme] = useState(false); 
 
     const [questions, setQuestions] = useState([
         { id: Date.now(), titre: '', type: 'qcm', obligatoire: true, options: ['', ''] }
@@ -29,7 +31,6 @@ export default function CreerSondage({ onSondageCree }) {
         }));
     };
 
-    // Liste des types de questions qui nécessitent que le créateur tape des choix (options)
     const typesAvecOptions = ['qcm', 'checkbox', 'likert', 'boolean', 'ranking', 'matrix'];
 
     const handleSubmit = async (e) => {
@@ -38,10 +39,13 @@ export default function CreerSondage({ onSondageCree }) {
         setChargement(true);
         try {
             await api.post('/sondages', {
-                titre, description, date_fin: dateFin || null, est_prive: !estPublic, est_anonyme: false,
+                titre, 
+                description, 
+                date_fin: dateFin || null, 
+                est_prive: !estPublic, 
+                est_anonyme: estAnonyme, // LA VARIABLE EST BIEN ENVOYÉE ICI
                 questions: questions.map(q => ({
                     titre: q.titre, type: q.type, obligatoire: q.obligatoire,
-                    // On envoie les options uniquement si le type de question le requiert
                     options: typesAvecOptions.includes(q.type) ? q.options.filter(opt => opt.trim() !== '') : []
                 }))
             });
@@ -73,16 +77,28 @@ export default function CreerSondage({ onSondageCree }) {
                         <label className="block text-sm font-semibold mb-2">Description</label>
                         <textarea rows="3" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Décrivez votre sondage..." className="w-full p-2.5 bg-gray-50/50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-y"></textarea>
                     </div>
-                    <div className="flex items-center gap-8">
+                    
+                    {/* LIGNE DES OPTIONS (Date, Public, Anonyme) */}
+                    <div className="flex flex-wrap items-center gap-8">
                         <div>
                             <label className="block text-sm font-semibold mb-2">Date d'expiration</label>
                             <input type="date" value={dateFin} onChange={(e) => setDateFin(e.target.value)} className="w-48 p-2.5 bg-gray-50/50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm text-gray-500" />
                         </div>
+                        
                         <div className="flex items-center pt-6">
                             <label className="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" className="sr-only peer" checked={estPublic} onChange={(e) => setEstPublic(e.target.checked)} />
                                 <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-blue-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
                                 <span className="ml-3 text-sm font-medium">Sondage public</span>
+                            </label>
+                        </div>
+
+                        {/* LE NOUVEAU BOUTON ANONYME IDENTIQUE */}
+                        <div className="flex items-center pt-6">
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" className="sr-only peer" checked={estAnonyme} onChange={(e) => setEstAnonyme(e.target.checked)} />
+                                <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-[#3b82f6] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                                <span className="ml-3 text-sm font-medium">Sondage anonyme</span>
                             </label>
                         </div>
                     </div>
@@ -102,7 +118,6 @@ export default function CreerSondage({ onSondageCree }) {
                                 <span className="text-sm font-medium text-gray-500">Q{index + 1}</span>
                                 <input type="text" required value={q.titre} onChange={(e) => mettreAJourQuestion(q.id, 'titre', e.target.value)} placeholder="Texte de la question..." className="flex-grow p-2.5 bg-gray-50/50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                                 
-                                {/* LE NOUVEAU MENU DÉROULANT COMPLET */}
                                 <select 
                                     value={q.type} onChange={(e) => mettreAJourQuestion(q.id, 'type', e.target.value)}
                                     className="w-48 p-2.5 bg-white dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer"
@@ -136,7 +151,6 @@ export default function CreerSondage({ onSondageCree }) {
                                 )}
                             </div>
 
-                            {/* AFFICHAGE CONDITIONNEL DES OPTIONS */}
                             {typesAvecOptions.includes(q.type) && (
                                 <div className="ml-9 space-y-3">
                                     {q.options.map((opt, oIndex) => (
@@ -155,7 +169,6 @@ export default function CreerSondage({ onSondageCree }) {
                                 </div>
                             )}
 
-                            {/* PETITS MESSAGES D'AIDE POUR LES NOUVEAUX TYPES */}
                             {!typesAvecOptions.includes(q.type) && (
                                 <div className="ml-9 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm flex items-center gap-2">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>

@@ -22,7 +22,6 @@ export default function Register() {
         setChargement(true);
 
         try {
-            // On envoie les données à l'API Laravel
             await api.post('/register', {
                 name,
                 email,
@@ -30,8 +29,8 @@ export default function Register() {
                 password_confirmation: passwordConfirmation
             });
 
-            // Si ça marche, on redirige vers la page de connexion avec un petit message de succès (optionnel)
-            alert('Compte créé avec succès ! Vous pouvez maintenant vous connecter.');
+            // L'alerte a été supprimée. 
+            // On redirige silencieusement et directement vers le login
             navigate('/login');
             
         } catch (err) {

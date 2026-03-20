@@ -14,6 +14,11 @@ function App() {
   const location = useLocation();
 
   const estConnecte = !!localStorage.getItem('token');
+  
+  // 🔥 Récupérer l'utilisateur pour vérifier son rôle
+  const userJson = localStorage.getItem('user');
+  const user = userJson ? JSON.parse(userJson) : null;
+  const isSuperAdmin = user?.role === 'super_admin';
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -49,10 +54,24 @@ function App() {
           <div className="flex items-center space-x-2 md:space-x-4">
             {estConnecte ? (
               <nav className="flex items-center space-x-1 md:space-x-2 mr-4">
-                <Link to="/" className={getLinkStyle('/')}>Accueil</Link>
-                <Link to="/mes-sondages" className={getLinkStyle('/mes-sondages')}>Mes sondages</Link>
-                <Link to="/creer" className={getLinkStyle('/creer')}>Créer</Link>
-                <Link to="/profil" className={getLinkStyle('/profil')}>Profil</Link>
+                
+                {/* 🚨 SÉPARATION DES MENUS SELON LE RÔLE */}
+                {isSuperAdmin ? (
+                  // MENU EXCLUSIF SUPER ADMIN
+                  <Link to="/admin" className={getLinkStyle('/admin')}>
+                    ⚙️ Panneau de Contrôle
+                  </Link>
+                ) : (
+                  // MENU STANDARD UTILISATEUR
+                  <>
+                    <Link to="/" className={getLinkStyle('/')}>Accueil</Link>
+                    <Link to="/mes-sondages" className={getLinkStyle('/mes-sondages')}>Mes sondages</Link>
+                    <Link to="/creer" className={getLinkStyle('/creer')}>Créer</Link>
+                    <Link to="/profil" className={getLinkStyle('/profil')}>Profil</Link>
+                  </>
+                )}
+
+                {/* BOUTON DÉCONNEXION (COMMUN À TOUS) */}
                 <button onClick={handleLogout} className="px-4 py-2 hover:bg-red-500/80 rounded-lg transition-colors font-medium ml-2">
                   Déconnexion
                 </button>
@@ -83,6 +102,10 @@ function App() {
           <Route path="/mes-sondages" element={<Dashboard />} />
           <Route path="/creer" element={<Dashboard />} />
           <Route path="/profil" element={<Dashboard />} />
+          
+          {/* Route vers l'administration */}
+          <Route path="/admin" element={<Dashboard />} />
+          
           <Route path="/sondage/:id" element={<ParticiperSondage />} />
           <Route path="/sondage/:id/resultats" element={<ResultatsSondage />} />
         </Routes>

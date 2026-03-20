@@ -15,13 +15,13 @@ class VoteController extends Controller
         $user = $request->user(); // Récupère l'utilisateur connecté
         $sondage = Sondage::findOrFail($sondage_id);
 
-        // --- SÉCURITÉ 1 : Vérification de la date limite ---
-        if ($sondage->date_fin && now()->greaterThan($sondage->date_fin)) {
-            return response()->json(['message' => 'Ce sondage est terminé.'], 403);
+        // --- SÉCURITÉ 1 : Vérification stricte de la date limite ---
+        // On utilise Carbon::parse() pour éviter l'erreur 500 si la date est en format texte
+        if ($sondage->date_fin && \Carbon\Carbon::parse($sondage->date_fin)->isPast()) {
+            return response()->json(['message' => 'Ce sondage a expiré. Les votes sont clos.'], 403);
         }
 
         // --- SÉCURITÉ 2 : Anti Double-Vote ---
-        // On vérifie par ID utilisateur (et on pourrait aussi vérifier par IP si besoin)
         $dejaVote = false;
         if ($user) {
             $dejaVote = Vote::where('user_id', $user->id)
@@ -77,10 +77,9 @@ class VoteController extends Controller
     // --- RÉCUPÉRER L'HISTORIQUE DES VOTES DE L'UTILISATEUR ---
     public function mesVotes(Request $request)
     {
-        // On récupère tous les tickets de vote de cet utilisateur, en incluant les infos du sondage
         $votes = Vote::with('sondage')
                     ->where('user_id', $request->user()->id)
-                    ->latest() // Du plus récent au plus ancien
+                    ->latest() 
                     ->get();
 
         return response()->json($votes);

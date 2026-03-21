@@ -1,40 +1,40 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
+import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import api from '../api/axios';
 import CreerSondage from '../components/creerSondage';
+
+// 🔥 Importation de nos deux nouveaux composants d'affichage
+import AdminView from '../components/AdminView';
+import UserView from '../components/UserView';
 
 export default function Dashboard() {
     const navigate = useNavigate();
     const location = useLocation();
     const [user, setUser] = useState(null);
     
-    // États Utilisateur Normal
+    // --- ÉTATS ---
     const [mesSondages, setMesSondages] = useState([]); 
     const [historiqueVotes, setHistoriqueVotes] = useState([]);
-    
-    // États Super Admin
     const [tousLesUtilisateurs, setTousLesUtilisateurs] = useState([]);
     const [tousLesSondages, setTousLesSondages] = useState([]);
     const [adminOngletActif, setAdminOngletActif] = useState('dashboard');
-    
-    // États UX
     const [showToast, setShowToast] = useState({ visible: false, message: '', type: 'success' });
     const [pageActuelle, setPageActuelle] = useState(1);
     const sondagesParPage = 5;
 
-    // Modales
+    // --- MODALES ---
     const [sondageASupprimer, setSondageASupprimer] = useState(null);
     const [utilisateurASupprimer, setUtilisateurASupprimer] = useState(null);
     const [sondageACloturer, setSondageACloturer] = useState(null);
     const [sondageAdminASupprimer, setSondageAdminASupprimer] = useState(null);
 
-    // Profil
+    // --- PROFIL ---
     const [editName, setEditName] = useState('');
     const [editEmail, setEditEmail] = useState('');
     const [pwdData, setPwdData] = useState({ current_password: '', new_password: '', new_password_confirmation: '' });
     const [loadingProfil, setChargementProfil] = useState(false);
 
-    // --- CHARGEMENT ---
+    // --- LOGIQUE DE CHARGEMENT ---
     const chargerDonneesNormales = async (userId) => {
         try {
             const resSondages = await api.get('/sondages');
@@ -47,8 +47,7 @@ export default function Dashboard() {
     const chargerDonneesAdmin = async () => {
         try {
             const [resUsers, resSondages] = await Promise.all([
-                api.get('/users'),
-                api.get('/sondages')
+                api.get('/users'), api.get('/sondages')
             ]);
             setTousLesUtilisateurs(resUsers.data);
             setTousLesSondages(resSondages.data);
@@ -58,13 +57,11 @@ export default function Dashboard() {
     useEffect(() => {
         const userData = localStorage.getItem('user');
         const token = localStorage.getItem('token');
-
         if (userData && token) {
             const parsedUser = JSON.parse(userData);
             setUser(parsedUser);
             setEditName(parsedUser.name);
             setEditEmail(parsedUser.email);
-            
             if (parsedUser.role === 'super_admin') {
                 chargerDonneesAdmin();
                 if (location.pathname !== '/admin') navigate('/admin');
@@ -76,38 +73,29 @@ export default function Dashboard() {
         }
     }, [navigate, location.pathname]);
 
+    // --- LOGIQUE DES ACTIONS ---
     const handleSondageCree = () => {
-        if (user && user.role === 'super_admin') {
-            chargerDonneesAdmin();
-            navigate('/admin');
-        } else {
-            chargerDonneesNormales(user.id);
-            setPageActuelle(1);
-            navigate('/mes-sondages');
-        }
+        if (user?.role === 'super_admin') { chargerDonneesAdmin(); navigate('/admin'); } 
+        else { chargerDonneesNormales(user.id); setPageActuelle(1); navigate('/mes-sondages'); }
     };
 
-    // --- ACTIONS ---
     const afficherToast = (message, type = 'success') => {
         setShowToast({ visible: true, message, type });
-        setTimeout(() => setShowToast({ visible: false, message: '', type: 'success' }), 3000);
+        setTimeout(() => setShowToast({ visible: false }), 3000);
     };
 
     const handleUpdateProfile = async (e) => {
-        e.preventDefault();
-        setChargementProfil(true);
+        e.preventDefault(); setChargementProfil(true);
         try {
             const reponse = await api.put('/user/profile', { name: editName, email: editEmail });
-            setUser(reponse.data.user);
-            localStorage.setItem('user', JSON.stringify(reponse.data.user));
+            setUser(reponse.data.user); localStorage.setItem('user', JSON.stringify(reponse.data.user));
             afficherToast("Informations mises à jour !");
-        } catch (err) { afficherToast(err.response?.data?.message || "Erreur de modification", 'error'); }
+        } catch (err) { afficherToast(err.response?.data?.message || "Erreur", 'error'); }
         finally { setChargementProfil(false); }
     };
 
     const handleUpdatePassword = async (e) => {
-        e.preventDefault();
-        setChargementProfil(true);
+        e.preventDefault(); setChargementProfil(true);
         try {
             await api.put('/user/password', pwdData);
             setPwdData({ current_password: '', new_password: '', new_password_confirmation: '' }); 
@@ -117,45 +105,35 @@ export default function Dashboard() {
     };
 
     const confirmerSuppression = async () => {
-        if (!sondageASupprimer) return;
         try {
             await api.delete(`/sondages/${sondageASupprimer}`);
-            const nouvelleListe = mesSondages.filter(s => s.id !== sondageASupprimer);
-            setMesSondages(nouvelleListe);
-            setSondageASupprimer(null);
-            const totalPages = Math.ceil(nouvelleListe.length / sondagesParPage);
-            if (pageActuelle > totalPages && totalPages > 0) setPageActuelle(totalPages);
+            const nvListe = mesSondages.filter(s => s.id !== sondageASupprimer);
+            setMesSondages(nvListe); setSondageASupprimer(null);
+            if (pageActuelle > Math.ceil(nvListe.length / sondagesParPage)) setPageActuelle(Math.max(1, pageActuelle - 1));
             afficherToast("Sondage supprimé.");
-        } catch (err) { afficherToast("Erreur de suppression", 'error'); setSondageASupprimer(null); }
+        } catch (err) { afficherToast("Erreur", 'error'); setSondageASupprimer(null); }
     };
 
     const confirmerSuppressionUtilisateur = async () => {
-        if (!utilisateurASupprimer) return;
         try {
             await api.delete(`/users/${utilisateurASupprimer}`);
             setTousLesUtilisateurs(tousLesUtilisateurs.filter(u => u.id !== utilisateurASupprimer));
-            setUtilisateurASupprimer(null);
-            afficherToast("Utilisateur banni !");
-        } catch (err) { afficherToast("Erreur.", 'error'); setUtilisateurASupprimer(null); }
+            setUtilisateurASupprimer(null); afficherToast("Utilisateur banni !");
+        } catch (err) { afficherToast("Erreur", 'error'); setUtilisateurASupprimer(null); }
     };
 
     const confirmerCloture = async () => {
-        if (!sondageACloturer) return;
         try {
             await api.put(`/sondages/${sondageACloturer}/cloturer`);
-            chargerDonneesAdmin(); 
-            setSondageACloturer(null);
-            afficherToast("Sondage clôturé.");
+            chargerDonneesAdmin(); setSondageACloturer(null); afficherToast("Clôturé.");
         } catch (err) { afficherToast("Erreur", 'error'); setSondageACloturer(null); }
     };
 
     const confirmerSuppressionSondageAdmin = async () => {
-        if (!sondageAdminASupprimer) return;
         try {
             await api.delete(`/sondages/${sondageAdminASupprimer}`);
             setTousLesSondages(tousLesSondages.filter(s => s.id !== sondageAdminASupprimer));
-            setSondageAdminASupprimer(null);
-            afficherToast("Sondage effacé.");
+            setSondageAdminASupprimer(null); afficherToast("Effacé.");
         } catch (err) { afficherToast("Erreur", 'error'); setSondageAdminASupprimer(null); }
     };
 
@@ -164,6 +142,7 @@ export default function Dashboard() {
         afficherToast("Lien copié !");
     };
 
+    // --- COMPOSANTS VISUELS PARTAGÉS (Toasts & Modales) ---
     if (!user) return <p className="text-center p-8 dark:text-white">Chargement...</p>;
 
     const ToastComponent = () => (
@@ -174,12 +153,10 @@ export default function Dashboard() {
 
     const renderModal = (titre, desc, icon, color, onConfirm, onCancel, confirmText) => (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm p-4 animate-fade-in">
-            <div className="bg-white dark:bg-carteSombre p-6 md:p-8 rounded-2xl shadow-2xl max-w-md w-full border border-gray-100 dark:border-gray-700">
-                <div className="text-center mb-6">
-                    <div className={`w-16 h-16 ${color} rounded-full flex items-center justify-center mx-auto mb-4 text-3xl`}>{icon}</div>
-                    <h3 className="text-xl font-bold dark:text-white mb-2">{titre}</h3>
-                    <p className="text-sm text-gray-500">{desc}</p>
-                </div>
+            <div className="bg-white dark:bg-carteSombre p-6 md:p-8 rounded-2xl shadow-2xl max-w-md w-full border border-gray-100 dark:border-gray-700 text-center">
+                <div className={`w-16 h-16 ${color} rounded-full flex items-center justify-center mx-auto mb-4 text-3xl`}>{icon}</div>
+                <h3 className="text-xl font-bold dark:text-white mb-2">{titre}</h3>
+                <p className="text-sm text-gray-500 mb-6">{desc}</p>
                 <div className="flex gap-3">
                     <button onClick={onCancel} className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-white font-bold py-3 rounded-xl transition-colors">Annuler</button>
                     <button onClick={onConfirm} className={`flex-1 text-white font-bold py-3 rounded-xl transition-colors shadow-sm ${confirmText === 'Clôturer' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-red-600 hover:bg-red-700'}`}>{confirmText}</button>
@@ -188,277 +165,39 @@ export default function Dashboard() {
         </div>
     );
 
-    // ==========================================
-    // VUE SUPER ADMIN (/admin)
-    // ==========================================
-    if (user.role === 'super_admin') {
-        const totalVotes = tousLesSondages.reduce((sum, s) => sum + (s.votes_count || 0), 0);
-        const sActifs = tousLesSondages.filter(s => !s.date_fin || new Date(s.date_fin) > new Date()).length;
-        const sExpires = tousLesSondages.length - sActifs;
-        const topS = [...tousLesSondages].sort((a, b) => (b.votes_count || 0) - (a.votes_count || 0)).slice(0, 5);
+    // --- LE RENDU FINAL (Aiguillage) ---
+    return (
+        <div className="container mx-auto p-4 md:p-8 transition-colors duration-300 max-w-7xl">
+            <ToastComponent />
+            
+            {/* Affichage des Modales Communes */}
+            {sondageASupprimer && renderModal("Supprimer ?", "Irréversible.", "🗑️", "bg-red-100 text-red-600 dark:bg-red-900/30", confirmerSuppression, () => setSondageASupprimer(null), "Supprimer")}
+            {utilisateurASupprimer && renderModal("Bannir ?", "Action irréversible.", "⚠️", "bg-red-100 text-red-600 dark:bg-red-900/30", confirmerSuppressionUtilisateur, () => setUtilisateurASupprimer(null), "Bannir")}
+            {sondageACloturer && renderModal("Clôturer ?", "Votes bloqués.", "🔒", "bg-orange-100 text-orange-600 dark:bg-orange-900/30", confirmerCloture, () => setSondageACloturer(null), "Clôturer")}
+            {sondageAdminASupprimer && renderModal("Supprimer ?", "Définitif.", "🗑️", "bg-red-100 text-red-600 dark:bg-red-900/30", confirmerSuppressionSondageAdmin, () => setSondageAdminASupprimer(null), "Supprimer")}
 
-        return (
-            <div className="container mx-auto p-4 md:p-8 transition-colors duration-300 max-w-7xl">
-                <ToastComponent />
-                {utilisateurASupprimer && renderModal("Bannir ?", "Action irréversible.", "⚠️", "bg-red-100 text-red-600 dark:bg-red-900/30", confirmerSuppressionUtilisateur, () => setUtilisateurASupprimer(null), "Bannir")}
-                {sondageACloturer && renderModal("Clôturer ?", "Votes bloqués.", "🔒", "bg-orange-100 text-orange-600 dark:bg-orange-900/30", confirmerCloture, () => setSondageACloturer(null), "Clôturer")}
-                {sondageAdminASupprimer && renderModal("Supprimer ?", "Définitif.", "🗑️", "bg-red-100 text-red-600 dark:bg-red-900/30", confirmerSuppressionSondageAdmin, () => setSondageAdminASupprimer(null), "Supprimer")}
-
-                <div className="mb-8"><h1 className="text-3xl font-extrabold dark:text-white">👑 Centre de Contrôle</h1></div>
-                <div className="flex overflow-x-auto gap-2 mb-8 bg-gray-100/50 dark:bg-gray-800/30 p-2 rounded-xl custom-scrollbar">
-                    {['dashboard', 'utilisateurs', 'sondages', 'profil'].map(o => (
-                        <button key={o} onClick={() => setAdminOngletActif(o)} className={`px-6 py-3 rounded-lg font-bold text-sm transition-all whitespace-nowrap ${adminOngletActif === o ? 'bg-white dark:bg-carteSombre text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-700' : 'text-gray-500 hover:bg-white/50 dark:hover:bg-gray-700/50'}`}>
-                            {o === 'dashboard' ? '📊 Stats' : o === 'utilisateurs' ? '👥 Utilisateurs' : o === 'sondages' ? '📝 Sondages' : '⚙️ Profil'}
-                        </button>
-                    ))}
-                </div>
-
-                {adminOngletActif === 'dashboard' && (
-                    <div className="space-y-8 animate-fade-in">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                            <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border dark:border-gray-800"><p className="text-sm font-bold uppercase text-gray-500">Utilisateurs</p><p className="text-3xl font-extrabold dark:text-white">{tousLesUtilisateurs.length}</p></div>
-                            <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border dark:border-gray-800"><p className="text-sm font-bold uppercase text-gray-500">Sondages</p><p className="text-3xl font-extrabold dark:text-white">{tousLesSondages.length}</p></div>
-                            <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border dark:border-gray-800"><p className="text-sm font-bold uppercase text-gray-500">Votes</p><p className="text-3xl font-extrabold dark:text-white">{totalVotes}</p></div>
-                            <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border dark:border-gray-800"><p className="text-sm font-bold uppercase text-gray-500">Actifs / Expirés</p><p className="text-lg font-bold text-green-600">{sActifs} <span className="text-red-500">/ {sExpires}</span></p></div>
-                        </div>
-                        <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
-                            <h3 className="text-xl font-bold mb-6 dark:text-white">🏆 Sondages les plus populaires</h3>
-                            <div className="space-y-3">
-                                {topS.map((s, index) => (
-                                    <div key={s.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-fondSombre rounded-xl border border-gray-100 dark:border-gray-700">
-                                        <div className="flex items-center gap-4"><span className="text-2xl font-bold text-gray-300 dark:text-gray-600">#{index + 1}</span><div><p className="font-bold text-gray-900 dark:text-white">{s.titre}</p><p className="text-sm text-gray-500">Créé le {new Date(s.created_at).toLocaleDateString()}</p></div></div>
-                                        <div className="bg-blue-100 text-blue-800 font-bold px-4 py-1.5 rounded-full text-sm">{s.votes_count || 0} votes</div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {adminOngletActif === 'utilisateurs' && (
-                    <div className="bg-white dark:bg-carteSombre rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden animate-fade-in">
-                        <div className="p-6 border-b border-gray-100 dark:border-gray-700"><h3 className="text-xl font-bold dark:text-white">Annuaire des Utilisateurs</h3></div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase"><tr><th className="p-4">Utilisateur</th><th className="p-4">Inscription</th><th className="p-4">Rôle</th><th className="p-4 text-right">Actions</th></tr></thead>
-                                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                                    {tousLesUtilisateurs.map(u => (
-                                        <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/20">
-                                            <td className="p-4"><p className="font-bold text-gray-900 dark:text-white">{u.name}</p><p className="text-sm text-gray-500">{u.email}</p></td>
-                                            <td className="p-4 text-gray-600 dark:text-gray-400">{new Date(u.created_at).toLocaleDateString()}</td>
-                                            <td className="p-4"><span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${u.role === 'super_admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>{u.role}</span></td>
-                                            <td className="p-4 text-right">
-                                                {u.id !== user.id && (
-                                                    <button onClick={() => setUtilisateurASupprimer(u.id)} className="text-red-500 hover:text-red-700 font-bold text-sm bg-red-50 hover:bg-red-100 dark:bg-red-900/10 px-3 py-1.5 rounded-lg transition-colors">Bannir</button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
-
-                {adminOngletActif === 'sondages' && (
-                    <div className="bg-white dark:bg-carteSombre rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden animate-fade-in">
-                        <div className="p-6 border-b border-gray-100 dark:border-gray-700"><h3 className="text-xl font-bold dark:text-white">Tous les sondages de la plateforme</h3></div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase"><tr><th className="p-4">Titre & Infos</th><th className="p-4">Statut</th><th className="p-4">Votes</th><th className="p-4 text-right">Actions</th></tr></thead>
-                                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                                    {tousLesSondages.map(s => {
-                                        const estExpire = s.date_fin && new Date(s.date_fin) < new Date();
-                                        return (
-                                            <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/20">
-                                                <td className="p-4"><p className="font-bold text-gray-900 dark:text-white">{s.titre}</p><p className="text-xs text-gray-500 mt-1">ID: {s.id} • {s.est_anonyme ? 'Anonyme' : 'Public'}</p></td>
-                                                <td className="p-4"><span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${estExpire ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{estExpire ? 'Expiré' : 'Actif'}</span></td>
-                                                <td className="p-4 font-bold text-blue-600">{s.votes_count || 0}</td>
-                                                <td className="p-4 flex justify-end gap-2">
-                                                    <Link to={`/sondage/${s.id}/resultats`} className="text-blue-600 hover:text-blue-800 font-bold text-sm bg-blue-50 px-3 py-1.5 rounded-lg">Voir</Link>
-                                                    {!estExpire && <button onClick={() => setSondageACloturer(s.id)} className="text-orange-600 hover:text-orange-800 font-bold text-sm bg-orange-50 px-3 py-1.5 rounded-lg">Clôturer</button>}
-                                                    <button onClick={() => setSondageAdminASupprimer(s.id)} className="text-red-500 hover:text-red-700 font-bold text-sm bg-red-50 px-3 py-1.5 rounded-lg">Supprimer</button>
-                                                </td>
-                                            </tr>
-                                        )
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
-
-                {adminOngletActif === 'profil' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in">
-                        <div className="bg-white dark:bg-carteSombre p-6 md:p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">👤 Informations Administrateur</h3>
-                            <div className="mb-6 bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl border border-purple-100 dark:border-purple-800/50">
-                                <p className="text-sm font-bold text-purple-700 dark:text-purple-400 uppercase">Rôle : {user.role.replace('_', ' ')}</p>
-                                <p className="text-sm text-purple-600/80 dark:text-purple-400/80">Privilèges maximaux accordés.</p>
-                            </div>
-                            <form onSubmit={handleUpdateProfile} className="space-y-4">
-                                <div><label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Nom</label><input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} required className="w-full p-3 bg-gray-50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-[#3b82f6] outline-none dark:text-white" /></div>
-                                <div><label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Email</label><input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} required className="w-full p-3 bg-gray-50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-[#3b82f6] outline-none dark:text-white" /></div>
-                                <button type="submit" disabled={loadingProfil} className="w-full bg-[#3b82f6] text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors">Mettre à jour</button>
-                            </form>
-                        </div>
-                        <div className="bg-white dark:bg-carteSombre p-6 md:p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">🔒 Sécurité</h3>
-                            <form onSubmit={handleUpdatePassword} className="space-y-4">
-                                <div><label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Mot de passe actuel</label><input type="password" value={pwdData.current_password} onChange={(e) => setPwdData({...pwdData, current_password: e.target.value})} required className="w-full p-3 bg-gray-50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none dark:text-white" /></div>
-                                <div><label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Nouveau mot de passe</label><input type="password" value={pwdData.new_password} onChange={(e) => setPwdData({...pwdData, new_password: e.target.value})} required minLength={8} className="w-full p-3 bg-gray-50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none dark:text-white" /></div>
-                                <div><label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Confirmer</label><input type="password" value={pwdData.new_password_confirmation} onChange={(e) => setPwdData({...pwdData, new_password_confirmation: e.target.value})} required minLength={8} className="w-full p-3 bg-gray-50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none dark:text-white" /></div>
-                                <button type="submit" disabled={loadingProfil} className="w-full bg-gray-900 dark:bg-gray-700 text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition-colors">Changer le mot de passe</button>
-                            </form>
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    }
-
-    // ==========================================
-    // VUES UTILISATEUR NORMAL (/mes-sondages, /creer, /profil)
-    // ==========================================
-    
-    if (location.pathname === '/creer') {
-        return <div className="container mx-auto p-4 md:p-8"><CreerSondage onSondageCree={handleSondageCree} /></div>;
-    }
-
-    if (location.pathname === '/mes-sondages') {
-        const indexDernierSondage = pageActuelle * sondagesParPage;
-        const indexPremierSondage = indexDernierSondage - sondagesParPage;
-        const sondagesAffiches = mesSondages.slice(indexPremierSondage, indexDernierSondage);
-        const totalPages = Math.ceil(mesSondages.length / sondagesParPage);
-
-        return (
-            <div className="container mx-auto p-8 transition-colors duration-300 relative">
-                <ToastComponent />
-                {sondageASupprimer && renderModal("Supprimer ce sondage ?", "Toutes les réponses récoltées seront définitivement perdues.", "🗑️", "bg-red-100 text-red-600 dark:bg-red-900/30", confirmerSuppression, () => setSondageASupprimer(null), "Oui, supprimer")}
-
-                <div className="bg-white dark:bg-carteSombre p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                        <h3 className="text-2xl font-bold text-primaire dark:text-white">
-                            Mes sondages actifs {mesSondages.length > 0 && <span className="text-sm font-normal text-gray-500 ml-2">({mesSondages.length} au total)</span>}
-                        </h3>
-                        <Link to="/creer" className="bg-secondaire hover:bg-emerald-600 text-white font-bold py-2 px-6 rounded-lg transition-colors flex items-center gap-2">
-                            Créer un sondage
-                        </Link>
-                    </div>
-                    
-                    {mesSondages.length === 0 ? (
-                        <div className="text-center py-10 border-t border-gray-100 dark:border-gray-700 mt-4">
-                            <p className="text-gray-500 italic mb-4">Vous n'avez pas encore créé de sondage.</p>
-                        </div>
-                    ) : (
-                        <div>
-                            <div className="space-y-4">
-                                {sondagesAffiches.map(sondage => (
-                                    <div key={sondage.id} className="flex flex-col md:flex-row justify-between items-center bg-gray-50 dark:bg-fondSombre p-5 rounded-xl border border-gray-200 dark:border-gray-600 transition-colors">
-                                        <div className="mb-4 md:mb-0 w-full md:w-1/2">
-                                            <h5 className="font-bold text-lg text-primaire dark:text-white flex items-center flex-wrap gap-2">
-                                                {sondage.titre}
-                                                {sondage.date_fin && new Date(sondage.date_fin) < new Date() && (
-                                                    <span className="bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded border border-red-200">Expiré</span>
-                                                )}
-                                            </h5>
-                                            <p className="text-sm text-gray-500 mt-1">
-                                                {sondage.questions?.length || 0} question(s) • Anonyme: {sondage.est_anonyme ? 'Oui' : 'Non'} • <span className="font-bold text-blue-600">{sondage.votes_count || 0} vote(s)</span>
-                                            </p>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2 w-full md:w-auto justify-end">
-                                            <button onClick={() => handlePartager(sondage.id)} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 font-bold py-2.5 px-4 rounded-lg shadow-sm text-sm dark:text-white">Partager</button>
-                                            <Link to={`/sondage/${sondage.id}/resultats`} className="bg-blue-50 text-blue-700 font-bold py-2.5 px-4 rounded-lg shadow-sm text-sm">Résultats</Link>
-                                            <button onClick={() => setSondageASupprimer(sondage.id)} className="bg-red-50 text-red-600 font-bold py-2.5 px-4 rounded-lg shadow-sm text-sm">Supprimer</button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            {totalPages > 1 && (
-                                <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
-                                    <div className="flex gap-2 mx-auto">
-                                        <button onClick={() => setPageActuelle(prev => Math.max(prev - 1, 1))} disabled={pageActuelle === 1} className="px-4 py-2 rounded-lg font-bold bg-gray-100 dark:bg-gray-800 dark:text-white disabled:opacity-50">Précédent</button>
-                                        <button onClick={() => setPageActuelle(prev => Math.min(prev + 1, totalPages))} disabled={pageActuelle === totalPages} className="px-4 py-2 rounded-lg font-bold bg-gray-100 dark:bg-gray-800 dark:text-white disabled:opacity-50">Suivant</button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
-    }
-
-    if (location.pathname === '/profil') {
-        const totalVotesRecus = mesSondages.reduce((acc, s) => acc + (s.votes_count || 0), 0);
-        const tauxParticipation = mesSondages.length > 0 ? Math.round(totalVotesRecus / mesSondages.length) : 0;
-
-        return (
-            <div className="container mx-auto p-4 md:p-8 transition-colors duration-300 max-w-7xl">
-                <ToastComponent />
-                <div className="mb-8">
-                    <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">Paramètres du compte</h2>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    <div className="lg:col-span-5 space-y-8">
-                        <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
-                            <h3 className="text-xl font-bold dark:text-white mb-6">👤 Informations Personnelles</h3>
-                            <form onSubmit={handleUpdateProfile} className="space-y-4">
-                                <div><label className="block text-sm font-bold dark:text-gray-300 mb-2">Nom complet</label><input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} required className="w-full p-3 bg-gray-50 border rounded-xl dark:bg-fondSombre dark:text-white dark:border-gray-600" /></div>
-                                <div><label className="block text-sm font-bold dark:text-gray-300 mb-2">Email</label><input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} required className="w-full p-3 bg-gray-50 border rounded-xl dark:bg-fondSombre dark:text-white dark:border-gray-600" /></div>
-                                <button type="submit" disabled={loadingProfil} className="w-full bg-[#3b82f6] text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors">Enregistrer</button>
-                            </form>
-                        </div>
-                        <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
-                            <h3 className="text-xl font-bold dark:text-white mb-6">🔒 Sécurité du compte</h3>
-                            <form onSubmit={handleUpdatePassword} className="space-y-4">
-                                <div><input type="password" placeholder="Mot de passe actuel" value={pwdData.current_password} onChange={(e) => setPwdData({...pwdData, current_password: e.target.value})} required className="w-full p-3 bg-gray-50 border rounded-xl dark:bg-fondSombre dark:text-white dark:border-gray-600" /></div>
-                                <div><input type="password" placeholder="Nouveau mot de passe" value={pwdData.new_password} onChange={(e) => setPwdData({...pwdData, new_password: e.target.value})} required minLength={8} className="w-full p-3 bg-gray-50 border rounded-xl dark:bg-fondSombre dark:text-white dark:border-gray-600" /></div>
-                                <div><input type="password" placeholder="Confirmer" value={pwdData.new_password_confirmation} onChange={(e) => setPwdData({...pwdData, new_password_confirmation: e.target.value})} required minLength={8} className="w-full p-3 bg-gray-50 border rounded-xl dark:bg-fondSombre dark:text-white dark:border-gray-600" /></div>
-                                <button type="submit" disabled={loadingProfil} className="w-full bg-gray-900 text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition-colors">Changer le mot de passe</button>
-                            </form>
-                        </div>
-                    </div>
-
-                    <div className="lg:col-span-7 space-y-8">
-                        {mesSondages.length > 0 && (
-                            <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border border-blue-100 dark:border-blue-900/30">
-                                <h3 className="text-xl font-bold dark:text-white mb-6">📊 Espace Organisateur</h3>
-                                <div className="grid grid-cols-3 gap-4 text-center">
-                                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl"><p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase mb-2">Créés</p><p className="text-3xl font-extrabold text-blue-900 dark:text-blue-300">{mesSondages.length}</p></div>
-                                    <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-xl"><p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold uppercase mb-2">Reçus</p><p className="text-3xl font-extrabold text-emerald-900 dark:text-emerald-300">{totalVotesRecus}</p></div>
-                                    <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl"><p className="text-xs text-purple-600 dark:text-purple-400 font-bold uppercase mb-2">Participation</p><p className="text-xl font-bold text-purple-900 dark:text-purple-300">{tauxParticipation} <span className="text-sm">/sondage</span></p></div>
-                                </div>
-                            </div>
-                        )}
-                        <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
-                            <h3 className="text-xl font-bold dark:text-white mb-6">🕒 Activité (Historique des votes)</h3>
-                            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                                {historiqueVotes.length === 0 ? (
-                                    <p className="text-gray-500 italic text-center py-4">Vous n'avez participé à aucun sondage.</p>
-                                ) : (
-                                    historiqueVotes.map(vote => (
-                                        <div key={vote.id} className="bg-gray-50 dark:bg-fondSombre p-5 rounded-xl border dark:border-gray-600 flex flex-col sm:flex-row justify-between gap-4">
-                                            <div>
-                                                <p className="font-bold dark:text-white">{vote.sondage ? vote.sondage.titre : "Sondage supprimé"}</p>
-                                                <p className="text-sm text-gray-500 mt-1">Voté le {new Date(vote.created_at).toLocaleDateString()}</p>
-                                            </div>
-                                            {vote.sondage && <Link to={`/sondage/${vote.sondage.id}/resultats`} className="text-[#3b82f6] hover:underline font-bold text-sm">Résultats →</Link>}
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    if (location.pathname === '/dashboard') {
-        return <Navigate to="/mes-sondages" replace />;
-    }
-    
-    return null;
+            {/* Aiguillage vers le bon composant selon le rôle et l'URL */}
+            {user.role === 'super_admin' ? (
+                <AdminView 
+                    user={user} tousLesUtilisateurs={tousLesUtilisateurs} tousLesSondages={tousLesSondages}
+                    adminOngletActif={adminOngletActif} setAdminOngletActif={setAdminOngletActif}
+                    setUtilisateurASupprimer={setUtilisateurASupprimer} setSondageACloturer={setSondageACloturer} setSondageAdminASupprimer={setSondageAdminASupprimer}
+                    editName={editName} setEditName={setEditName} editEmail={editEmail} setEditEmail={setEditEmail} pwdData={pwdData} setPwdData={setPwdData}
+                    handleUpdateProfile={handleUpdateProfile} handleUpdatePassword={handleUpdatePassword} loadingProfil={loadingProfil}
+                />
+            ) : location.pathname === '/creer' ? (
+                <CreerSondage onSondageCree={handleSondageCree} />
+            ) : location.pathname === '/dashboard' ? (
+                <Navigate to="/mes-sondages" replace />
+            ) : (
+                <UserView 
+                    vueActuelle={location.pathname.replace('/', '')} // 'mes-sondages' ou 'profil'
+                    mesSondages={mesSondages} historiqueVotes={historiqueVotes} pageActuelle={pageActuelle} setPageActuelle={setPageActuelle}
+                    sondagesParPage={sondagesParPage} setSondageASupprimer={setSondageASupprimer} handlePartager={handlePartager}
+                    editName={editName} setEditName={setEditName} editEmail={editEmail} setEditEmail={setEditEmail} pwdData={pwdData} setPwdData={setPwdData}
+                    handleUpdateProfile={handleUpdateProfile} handleUpdatePassword={handleUpdatePassword} loadingProfil={loadingProfil}
+                />
+            )}
+        </div>
+    );
 }

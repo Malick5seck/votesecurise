@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
+import QuestionSondage from '../components/QuestionSondage'; // <-- Nouvel import
 
 export default function ParticiperSondage() {
     const { id } = useParams();
@@ -56,7 +57,7 @@ export default function ParticiperSondage() {
             if (estCoche) {
                 nouvellesOptions.push(optionId);
             } else {
-                nouvellesOptions = nouvellesOptions.filter(id => id !== optionId);
+                nouvellesOptions = nouvellesOptions.filter(id !== optionId);
             }
             
             return { ...prev, [questionId]: { options_multiples: nouvellesOptions } };
@@ -96,12 +97,9 @@ export default function ParticiperSondage() {
         }
     };
 
-    // --- LES DIFFÉRENTES VUES (Chargement, Erreur, Expiré, Déjà Voté, Succès) ---
-    
     if (chargement) return <div className="text-center py-20 text-gray-500 text-lg">Chargement du sondage...</div>;
     if (erreur) return <div className="text-center py-20 text-red-500 text-lg font-bold">{erreur}</div>;
     
-    // NOUVELLE VUE : SONDAGE EXPIRÉ ⛔
     const estExpire = sondage?.date_fin ? new Date(sondage.date_fin) < new Date() : false;
     
     if (estExpire) return (
@@ -117,7 +115,6 @@ export default function ParticiperSondage() {
         </div>
     );
 
-    // Vue : Déjà Voté
     if (aDejaVote) return (
         <div className="max-w-2xl mx-auto py-20 px-4 text-center transition-colors duration-300">
             <div className="bg-white dark:bg-carteSombre p-10 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
@@ -131,7 +128,6 @@ export default function ParticiperSondage() {
         </div>
     );
 
-    // Vue : Succès du vote ! 🎉
     if (voteReussi) return (
         <div className="max-w-2xl mx-auto py-20 px-4 text-center transition-colors duration-300">
             <div className="bg-white dark:bg-carteSombre p-10 rounded-2xl shadow-xl border border-green-100 dark:border-green-900/30 transform transition-all">
@@ -151,10 +147,8 @@ export default function ParticiperSondage() {
         </div>
     );
 
-    // Vue : Le Formulaire normal
     return (
         <div className="max-w-3xl mx-auto py-10 px-4 transition-colors duration-300">
-            
             <div className="bg-[#3b82f6] text-white p-8 rounded-t-2xl shadow-md">
                 <h1 className="text-3xl font-extrabold mb-3">{sondage.titre}</h1>
                 {sondage.description && <p className="text-blue-100 text-lg">{sondage.description}</p>}
@@ -183,120 +177,20 @@ export default function ParticiperSondage() {
                 )}
 
                 <div className="space-y-8">
+                    {/* UTILISATION DU NOUVEAU COMPOSANT ICI */}
                     {sondage.questions.map((q, index) => (
-                        <div key={q.id} className="p-6 bg-gray-50 dark:bg-fondSombre rounded-xl border border-gray-100 dark:border-gray-600">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                                {index + 1}. {q.titre} {q.obligatoire && <span className="text-red-500">*</span>}
-                            </h3>
-
-                            {/* CHOIX UNIQUE */}
-                            {['qcm', 'boolean', 'likert'].includes(q.type) && (
-                                <div className="space-y-3">
-                                    {q.options.map(opt => (
-                                        <label key={opt.id} className="flex items-center gap-3 p-3 bg-white dark:bg-carteSombre border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
-                                            <input 
-                                                type="radio" name={`q_${q.id}`} required={q.obligatoire}
-                                                onChange={() => handleRadioChange(q.id, opt.id)}
-                                                className="w-5 h-5 text-blue-600 focus:ring-blue-500 border-gray-300"
-                                            />
-                                            <span className="text-gray-800 dark:text-gray-200">{opt.contenu}</span>
-                                        </label>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* CHOIX MULTIPLE */}
-                            {q.type === 'checkbox' && (
-                                <div className="space-y-3">
-                                    {q.options.map(opt => (
-                                        <label key={opt.id} className="flex items-center gap-3 p-3 bg-white dark:bg-carteSombre border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
-                                            <input 
-                                                type="checkbox" 
-                                                onChange={(e) => handleCheckboxChange(q.id, opt.id, e.target.checked)}
-                                                className="w-5 h-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                            />
-                                            <span className="text-gray-800 dark:text-gray-200">{opt.contenu}</span>
-                                        </label>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* TEXTE LIBRE */}
-                            {q.type === 'text' && (
-                                <textarea 
-                                    required={q.obligatoire} rows="4" placeholder="Votre réponse ici..."
-                                    onChange={(e) => handleTextChange(q.id, e.target.value)}
-                                    className="w-full p-4 bg-white dark:bg-carteSombre border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white resize-y"
-                                ></textarea>
-                            )}
-
-                            {/* DATE */}
-                            {q.type === 'date' && (
-                                <input 
-                                    type="date" required={q.obligatoire}
-                                    onChange={(e) => handleTextChange(q.id, e.target.value)}
-                                    className="w-full sm:w-auto p-3 bg-white dark:bg-carteSombre border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
-                                />
-                            )}
-
-                            {/* NUMÉRIQUE */}
-                            {q.type === 'number' && (
-                                <input 
-                                    type="number" required={q.obligatoire} placeholder="Ex: 42"
-                                    onChange={(e) => handleTextChange(q.id, e.target.value)}
-                                    className="w-full sm:w-1/2 p-3 bg-white dark:bg-carteSombre border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
-                                />
-                            )}
-
-                            {/* SLIDER */}
-                            {q.type === 'slider' && (
-                                <div className="flex items-center gap-4 bg-white dark:bg-carteSombre p-4 rounded-lg border border-gray-200 dark:border-gray-600">
-                                    <input 
-                                        type="range" min="0" max="100" defaultValue="50"
-                                        onChange={(e) => handleTextChange(q.id, e.target.value)}
-                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                                    />
-                                    <span className="font-bold text-blue-600 dark:text-blue-400 w-12 text-center">
-                                        {reponses[q.id]?.valeur_texte || "50"}%
-                                    </span>
-                                </div>
-                            )}
-
-                            {/* RATING */}
-                            {q.type === 'rating' && (
-                                <div className="flex gap-2 text-3xl">
-                                    {[1, 2, 3, 4, 5].map(star => (
-                                        <button 
-                                            key={star} type="button"
-                                            onClick={() => handleTextChange(q.id, star.toString())}
-                                            className={`${(reponses[q.id]?.valeur_texte >= star) ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'} hover:text-yellow-500 transition-colors focus:outline-none`}
-                                        >
-                                            ★
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* TYPES AVANCÉS */}
-                            {['ranking', 'matrix', 'condition'].includes(q.type) && (
-                                <div className="space-y-3">
-                                    {q.options.map(opt => (
-                                        <div key={opt.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 bg-white dark:bg-carteSombre border border-gray-200 dark:border-gray-600 rounded-lg">
-                                            <span className="text-gray-800 dark:text-gray-200 font-medium sm:w-1/2">{opt.contenu}</span>
-                                            <input 
-                                                type="text" placeholder="Votre réponse / Rang..."
-                                                onChange={(e) => handleTextChange(`${q.id}_${opt.id}`, e.target.value)}
-                                                className="w-full sm:w-1/2 p-2 border border-gray-200 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-fondSombre dark:text-white text-sm"
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        <QuestionSondage 
+                            key={q.id}
+                            q={q}
+                            index={index}
+                            reponses={reponses}
+                            handleTextChange={handleTextChange}
+                            handleRadioChange={handleRadioChange}
+                            handleCheckboxChange={handleCheckboxChange}
+                        />
                     ))}
                 </div>
 
-                {/* GESTION DE L'ANONYMAT */}
                 <div className={`mt-10 p-5 rounded-xl border flex items-start gap-4 ${sondage.est_anonyme ? 'bg-gray-50 border-gray-200 dark:bg-gray-800 dark:border-gray-700' : 'bg-blue-50 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800'}`}>
                     <div className="pt-0.5">
                         <input 
@@ -319,7 +213,6 @@ export default function ParticiperSondage() {
                     </div>
                 </div>
 
-                {/* BOUTON DE SOUMISSION */}
                 <div className="mt-8 text-right">
                     <button 
                         type="submit" disabled={chargement}

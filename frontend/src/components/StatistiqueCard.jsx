@@ -1,4 +1,3 @@
-// src/components/StatistiqueCard.jsx
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, PieChart, Pie, Legend } from 'recharts';
 
 export default function StatistiqueCard({ stat, index, couleursTheme }) {

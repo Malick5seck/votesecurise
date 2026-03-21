@@ -44,4 +44,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // --- GESTION DES UTILISATEURS (Super Admin) ---
     Route::get('/users', [UserController::class, 'index']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
+    Route::get('/users/{id}/historique', [App\Http\Controllers\UserController::class, 'historiqueUtilisateur']);
+    Route::get('/admin/logs', [App\Http\Controllers\UserController::class, 'getAdminLogs']);
 });

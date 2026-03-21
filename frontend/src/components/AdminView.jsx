@@ -5,41 +5,40 @@ export default function AdminView({
     user, 
     tousLesUtilisateurs, 
     tousLesSondages, 
+    adminLogs, 
     adminOngletActif, 
     setAdminOngletActif, 
     setUtilisateurASupprimer, 
     setSondageACloturer, 
     setSondageAdminASupprimer,
     editName, setEditName, editEmail, setEditEmail, pwdData, setPwdData,
-    handleUpdateProfile, handleUpdatePassword, loadingProfil 
+    handleUpdateProfile, handleUpdatePassword, loadingProfil,
+    donneesChargees
 }) {
     
     const [pageChargee, setPageChargee] = useState(false);
 
-    // --- ÉTATS : RECHERCHE ---
     const [rechercheUtilisateur, setRechercheUtilisateur] = useState('');
     const [rechercheSondage, setRechercheSondage] = useState('');
 
-    // --- ÉTATS : PAGINATION ---
     const [pageUtilisateurs, setPageUtilisateurs] = useState(1);
     const [pageSondages, setPageSondages] = useState(1);
     const itemsParPage = 10;
 
     useEffect(() => {
-        const timer = setTimeout(() => setPageChargee(true), 50);
+        setPageChargee(false); 
+        const timer = setTimeout(() => setPageChargee(true), 50); 
         return () => clearTimeout(timer);
-    }, []);
+    }, [adminOngletActif, donneesChargees]);
 
     useEffect(() => setPageUtilisateurs(1), [rechercheUtilisateur]);
     useEffect(() => setPageSondages(1), [rechercheSondage]);
 
-    // Calcul des statistiques globales
     const totalVotes = tousLesSondages.reduce((sum, s) => sum + (s.votes_count || 0), 0);
     const sActifs = tousLesSondages.filter(s => !s.date_fin || new Date(s.date_fin) > new Date()).length;
     const sExpires = tousLesSondages.length - sActifs;
     const topS = [...tousLesSondages].sort((a, b) => (b.votes_count || 0) - (a.votes_count || 0)).slice(0, 5);
 
-    // --- LOGIQUE DE FILTRAGE ---
     const utilisateursFiltres = tousLesUtilisateurs.filter(u => 
         u.name.toLowerCase().includes(rechercheUtilisateur.toLowerCase()) || 
         u.email.toLowerCase().includes(rechercheUtilisateur.toLowerCase())
@@ -49,7 +48,6 @@ export default function AdminView({
         s.titre.toLowerCase().includes(rechercheSondage.toLowerCase())
     );
 
-    // --- LOGIQUE DE PAGINATION ---
     const indexDernierUser = pageUtilisateurs * itemsParPage;
     const indexPremierUser = indexDernierUser - itemsParPage;
     const utilisateursPaginees = utilisateursFiltres.slice(indexPremierUser, indexDernierUser);
@@ -64,309 +62,224 @@ export default function AdminView({
         if (totalPages <= 1) return null;
         return (
             <div className="flex justify-between items-center p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-fondSombre">
-                <button 
-                    onClick={() => setPage(p => Math.max(1, p - 1))} 
-                    disabled={pageActuelle === 1} 
-                    className="px-4 py-2 rounded-lg font-bold text-sm bg-white dark:bg-carteSombre border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm"
-                >
-                    Précédent
-                </button>
-                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Page {pageActuelle} sur {totalPages}
-                </span>
-                <button 
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))} 
-                    disabled={pageActuelle === totalPages} 
-                    className="px-4 py-2 rounded-lg font-bold text-sm bg-white dark:bg-carteSombre border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm"
-                >
-                    Suivant
-                </button>
+                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={pageActuelle === 1} className="px-4 py-2 rounded-lg font-bold text-sm bg-white dark:bg-carteSombre border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm">Précédent</button>
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Page {pageActuelle} sur {totalPages}</span>
+                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={pageActuelle === totalPages} className="px-4 py-2 rounded-lg font-bold text-sm bg-white dark:bg-carteSombre border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm">Suivant</button>
             </div>
         );
     };
 
     return (
-        <div className={`transition-all duration-500 ease-out transform ${pageChargee ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
-            <div className="mb-8"><h1 className="text-3xl font-extrabold dark:text-white">👑 Centre de Contrôle</h1></div>
+        <div>
+            <div className="mb-8 animate-fade-in"><h1 className="text-3xl font-extrabold dark:text-white">👑 Centre de Contrôle</h1></div>
             
-            <div className="flex overflow-x-auto gap-2 mb-8 bg-gray-100/50 dark:bg-gray-800/30 p-2 rounded-xl custom-scrollbar">
-                {['dashboard', 'utilisateurs', 'sondages', 'profil'].map(onglet => (
+            <div className="flex overflow-x-auto gap-2 mb-8 bg-gray-100/50 dark:bg-gray-800/30 p-2 rounded-xl custom-scrollbar animate-fade-in">
+                {['dashboard', 'utilisateurs', 'sondages', 'historique', 'profil'].map(onglet => (
                     <button 
                         key={onglet} 
                         onClick={() => setAdminOngletActif(onglet)} 
                         className={`px-6 py-3 rounded-lg font-bold text-sm transition-all whitespace-nowrap ${adminOngletActif === onglet ? 'bg-white dark:bg-carteSombre text-[#3b82f6] dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-700' : 'text-gray-500 hover:bg-white/50 dark:hover:bg-gray-700/50'}`}
                     >
-                        {onglet === 'dashboard' ? '📊 Stats' : onglet === 'utilisateurs' ? '👥 Utilisateurs' : onglet === 'sondages' ? '📝 Modération Sondages' : '⚙️ Profil'}
+                        {onglet === 'dashboard' ? '📊 Stats' : 
+                         onglet === 'utilisateurs' ? '👥 Utilisateurs' : 
+                         onglet === 'sondages' ? '📝 Modération' : 
+                         onglet === 'historique' ? '📜 Historique' : '⚙️ Profil'}
                     </button>
                 ))}
             </div>
 
-            {/* ONGLET : STATISTIQUES */}
-            {adminOngletActif === 'dashboard' && (
-                <div className="space-y-8 animate-fade-in">
+            {!donneesChargees ? (
+                <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-carteSombre rounded-2xl border border-gray-100 dark:border-gray-800 animate-fade-in">
+                    <div className="w-12 h-12 border-4 border-purple-100 border-t-purple-600 dark:border-gray-700 dark:border-t-purple-400 rounded-full animate-spin mb-4"></div>
+                    <p className="text-gray-500 dark:text-gray-400 font-medium">Initialisation du Centre de Contrôle...</p>
+                </div>
+            ) : (
+                <div className={`transition-all duration-700 ease-out transform ${pageChargee ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
                     
-                    {/* STATS : AJOUT D'ICÔNES ET LAYOUT FLEX */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                        
-                        {/* Carte 1 : Utilisateurs */}
-                        <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border dark:border-gray-800 flex items-start justify-between transform transition-all hover:scale-105 duration-300">
-                            <div>
-                                <p className="text-sm font-bold uppercase text-gray-500 mb-1">Utilisateurs</p>
-                                <p className="text-4xl font-extrabold text-gray-900 dark:text-white">
-                                    {tousLesUtilisateurs.length}
-                                </p>
+                    {adminOngletActif === 'dashboard' && (
+                        <div className="space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-start justify-between transform transition-all hover:scale-105 duration-300">
+                                    <div><p className="text-sm font-bold uppercase text-gray-500 mb-1">Utilisateurs</p><p className="text-4xl font-extrabold text-gray-900 dark:text-white">{tousLesUtilisateurs.length}</p></div>
+                                    <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-full text-[#3b82f6] dark:text-blue-400"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg></div>
+                                </div>
+                                <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-start justify-between transform transition-all hover:scale-105 duration-300">
+                                    <div><p className="text-sm font-bold uppercase text-gray-500 mb-1">Sondages</p><p className="text-4xl font-extrabold text-gray-900 dark:text-white">{tousLesSondages.length}</p></div>
+                                    <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-full text-emerald-600 dark:text-emerald-400"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></div>
+                                </div>
+                                <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-start justify-between transform transition-all hover:scale-105 duration-300">
+                                    <div><p className="text-sm font-bold uppercase text-gray-500 mb-1">Votes récoltés</p><p className="text-4xl font-extrabold text-gray-900 dark:text-white">{totalVotes}</p></div>
+                                    <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-full text-purple-600 dark:text-purple-400"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M11.35 3.836c-.029.028-.053.059-.08.081a1 1 0 00-1.154 0 2.12 2.12 0 01-.147.117a1.054 1.054 0 00-.304.372c-.114.29-.114.61 0 .899a1.077 1.077 0 00.304.372 1.14 1.14 0 01.147.117 1 1 0 001.154 0 2.12 2.12 0 01.147-.117c.13-.102.23-.23.304-.372a1.094 1.094 0 000-.899c-.074-.142-.174-.27-.304-.372a2.12 2.12 0 01-.147-.117zM12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2zm3.22 7.22a.75.75 0 00-1.06 0L11 12.393l-1.16-1.16a.75.75 0 10-1.06 1.06l1.69 1.69a.75.75 0 001.06 0l3.75-3.75z" /></svg></div>
+                                </div>
+                                <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-start justify-between transform transition-all hover:scale-105 duration-300">
+                                    <div><p className="text-sm font-bold uppercase text-gray-500 mb-1">Actifs / Expirés</p><p className="text-3xl font-extrabold text-gray-900 dark:text-white mt-1">{sActifs} <span className="text-gray-400 text-2xl mx-1 font-medium">/</span> {sExpires}</p></div>
+                                    <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+                                </div>
                             </div>
-                            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-full text-[#3b82f6] dark:text-blue-400">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
+
+                            <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
+                                <h3 className="text-xl font-bold mb-6 dark:text-white">🏆 Sondages les plus populaires</h3>
+                                <div className="space-y-3">
+                                    {topS.map((s, index) => {
+                                        const auteur = tousLesUtilisateurs.find(u => u.id === s.user_id)?.name || 'Inconnu';
+                                        return (
+                                            <div key={s.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-fondSombre rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
+                                                <div className="flex items-center gap-4">
+                                                    <span className={`text-2xl font-bold ${index === 1 ? 'text-gray-400' : 'text-gray-300 dark:text-gray-600'}`}>#{index + 1}</span>
+                                                    <div><p className="font-bold text-gray-900 dark:text-white">{s.titre}</p><p className="text-sm text-gray-500">Par {auteur} • Créé le {new Date(s.created_at).toLocaleDateString()}</p></div>
+                                                </div>
+                                                <div className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 font-bold px-4 py-1.5 rounded-full text-sm">{s.votes_count || 0} votes</div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </div>
+                    )}
 
-                        {/* Carte 2 : Sondages */}
-                        <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border dark:border-gray-800 flex items-start justify-between transform transition-all hover:scale-105 duration-300">
-                            <div>
-                                <p className="text-sm font-bold uppercase text-gray-500 mb-1">Sondages</p>
-                                <p className="text-4xl font-extrabold text-gray-900 dark:text-white">
-                                    {tousLesSondages.length}
-                                </p>
+                    {adminOngletActif === 'utilisateurs' && (
+                        <div className="bg-white dark:bg-carteSombre rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+                            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <h3 className="text-xl font-bold dark:text-white">Annuaire des Utilisateurs</h3>
+                                <div className="relative w-full sm:w-72">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
+                                    <input type="text" placeholder="Chercher par nom ou email..." value={rechercheUtilisateur} onChange={(e) => setRechercheUtilisateur(e.target.value)} className="w-full pl-10 p-2.5 bg-gray-50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-[#3b82f6] outline-none dark:text-white transition-colors" />
+                                </div>
                             </div>
-                            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-full text-emerald-600 dark:text-emerald-400">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase">
+                                        <tr><th className="p-4">Utilisateur</th><th className="p-4">Inscription</th><th className="p-4">Rôle</th><th className="p-4 text-center">Sondages créés</th><th className="p-4 text-right">Actions</th></tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                        {utilisateursPaginees.map(u => {
+                                            const nbSondagesUtilisateur = tousLesSondages.filter(s => s.user_id === u.id).length;
+                                            return (
+                                                <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors">
+                                                    <td className="p-4"><p className="font-bold text-gray-900 dark:text-white">{u.name}</p><p className="text-sm text-gray-500">{u.email}</p></td>
+                                                    <td className="p-4 text-gray-600 dark:text-gray-400">{new Date(u.created_at).toLocaleDateString()}</td>
+                                                    <td className="p-4"><span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${u.role === 'super_admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>{u.role}</span></td>
+                                                    <td className="p-4 text-center font-bold"><span className={nbSondagesUtilisateur > 20 ? "text-red-500" : "text-[#3b82f6]"}>{nbSondagesUtilisateur}</span></td>
+                                                    <td className="p-4 flex justify-end gap-2">
+                                                        {/* 🔥 CONDITION AJOUTÉE ICI POUR CACHER LES ACTIONS SI C'EST UN SUPER ADMIN */}
+                                                        {u.role !== 'super_admin' && (
+                                                            <>
+                                                                <Link to={`/admin/utilisateurs/${u.id}`} className="text-[#3b82f6] hover:text-blue-800 font-bold text-sm bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5" title="Voir l'historique détaillé">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Historique
+                                                                </Link>
+                                                                <button onClick={() => setUtilisateurASupprimer(u.id)} className="text-red-500 hover:text-red-700 font-bold text-sm bg-red-50 hover:bg-red-100 dark:bg-red-900/10 dark:hover:bg-red-900/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>Bannir
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                                {utilisateursFiltres.length === 0 && <div className="p-8 text-center text-gray-500 dark:text-gray-400 italic">Aucun utilisateur ne correspond à "{rechercheUtilisateur}"</div>}
+                                {renderPagination(pageUtilisateurs, setPageUtilisateurs, totalPagesUsers)}
                             </div>
                         </div>
+                    )}
 
-                        {/* Carte 3 : Votes récoltés */}
-                        <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border dark:border-gray-800 flex items-start justify-between transform transition-all hover:scale-105 duration-300">
-                            <div>
-                                <p className="text-sm font-bold uppercase text-gray-500 mb-1">Votes récoltés</p>
-                                <p className="text-4xl font-extrabold text-gray-900 dark:text-white">
-                                    {totalVotes}
-                                </p>
+                    {adminOngletActif === 'sondages' && (
+                        <div className="bg-white dark:bg-carteSombre rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+                            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div><h3 className="text-xl font-bold dark:text-white">Modération des contenus</h3><p className="text-sm text-gray-500 mt-1">Vérifiez les questions et les résultats pour détecter les abus.</p></div>
+                                <div className="relative w-full sm:w-72">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
+                                    <input type="text" placeholder="Chercher un titre de sondage..." value={rechercheSondage} onChange={(e) => setRechercheSondage(e.target.value)} className="w-full pl-10 p-2.5 bg-gray-50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-[#3b82f6] outline-none dark:text-white transition-colors" />
+                                </div>
                             </div>
-                            <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-full text-purple-600 dark:text-purple-400">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M11.35 3.836c-.029.028-.053.059-.08.081a1 1 0 00-1.154 0 2.12 2.12 0 01-.147.117a1.054 1.054 0 00-.304.372c-.114.29-.114.61 0 .899a1.077 1.077 0 00.304.372 1.14 1.14 0 01.147.117 1 1 0 001.154 0 2.12 2.12 0 01.147-.117c.13-.102.23-.23.304-.372a1.094 1.094 0 000-.899c-.074-.142-.174-.27-.304-.372a2.12 2.12 0 01-.147-.117zM12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2zm3.22 7.22a.75.75 0 00-1.06 0L11 12.393l-1.16-1.16a.75.75 0 10-1.06 1.06l1.69 1.69a.75.75 0 001.06 0l3.75-3.75z" /></svg>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase">
+                                        <tr><th className="p-4">Sondage & Auteur</th><th className="p-4">Statut</th><th className="p-4">Votes</th><th className="p-4 text-right">Outils d'investigation</th></tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                        {sondagesPagines.map(s => {
+                                            const estExpire = s.date_fin && new Date(s.date_fin) < new Date();
+                                            const auteur = tousLesUtilisateurs.find(u => u.id === s.user_id)?.name || 'Inconnu';
+                                            return (
+                                                <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors">
+                                                    <td className="p-4"><p className="font-bold text-gray-900 dark:text-white">{s.titre}</p><p className="text-xs text-gray-500 mt-1">Par <span className="font-bold text-[#3b82f6]">{auteur}</span> • {s.est_anonyme ? 'Votes Anonymes' : 'Votes Publics'}</p></td>
+                                                    <td className="p-4"><span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${estExpire ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{estExpire ? 'Expiré' : 'Actif'}</span></td>
+                                                    <td className="p-4 font-bold text-gray-700 dark:text-gray-300">{s.votes_count || 0}</td>
+                                                    <td className="p-4 flex justify-end gap-2">
+                                                        <Link to={`/sondage/${s.id}`} className="text-emerald-600 hover:text-emerald-800 font-bold text-sm bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-lg flex items-center gap-1" title="Voir les questions posées"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>Aperçu</Link>
+                                                        <Link to={`/sondage/${s.id}/resultats`} className="text-blue-600 hover:text-blue-800 font-bold text-sm bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-lg flex items-center gap-1" title="Voir les données récoltées">📊 Résultats</Link>
+                                                        {!estExpire && <button onClick={() => setSondageACloturer(s.id)} className="text-orange-600 hover:text-orange-800 font-bold text-sm bg-orange-50 dark:bg-orange-900/20 px-3 py-1.5 rounded-lg">Clôturer</button>}
+                                                        <button onClick={() => setSondageAdminASupprimer(s.id)} className="text-red-500 hover:text-red-700 font-bold text-sm bg-red-50 dark:bg-red-900/20 px-3 py-1.5 rounded-lg">Supprimer</button>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
+                                    </tbody>
+                                </table>
+                                {sondagesFiltres.length === 0 && <div className="p-8 text-center text-gray-500 dark:text-gray-400 italic">Aucun sondage ne correspond à "{rechercheSondage}"</div>}
+                                {renderPagination(pageSondages, setPageSondages, totalPagesSondages)}
                             </div>
                         </div>
+                    )}
 
-                        {/* Carte 4 : Actifs / Expirés */}
-                        <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border dark:border-gray-800 flex items-start justify-between transform transition-all hover:scale-105 duration-300">
-                            <div>
-                                <p className="text-sm font-bold uppercase text-gray-500 mb-1">Actifs / Expirés</p>
-                                <p className="text-3xl font-extrabold text-gray-900 dark:text-white mt-1">
-                                    {sActifs} <span className="text-gray-400 text-2xl mx-1 font-medium">/</span> {sExpires}
-                                </p>
-                            </div>
-                            <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
-                        <h3 className="text-xl font-bold mb-6 dark:text-white">🏆 Sondages les plus populaires</h3>
-                        <div className="space-y-3">
-                            {topS.map((s, index) => {
-                                const auteur = tousLesUtilisateurs.find(u => u.id === s.user_id)?.name || 'Inconnu';
-                                return (
-                                    <div key={s.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-fondSombre rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
-                                        <div className="flex items-center gap-4">
-                                            {/* 🔥 CORRECTION ICI : On a enlevé les couleurs spécifiques sur index 0 (#1) et index 2 (#3) */}
-                                            <span className={`text-2xl font-bold ${index === 1 ? 'text-gray-400' : 'text-gray-300 dark:text-gray-600'}`}>
-                                                #{index + 1}
-                                            </span>
-                                            <div>
-                                                <p className="font-bold text-gray-900 dark:text-white">{s.titre}</p>
-                                                <p className="text-sm text-gray-500">Par {auteur} • Créé le {new Date(s.created_at).toLocaleDateString()}</p>
+                    {adminOngletActif === 'historique' && (
+                        <div className="bg-white dark:bg-carteSombre p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
+                            <h3 className="text-xl font-bold mb-6 dark:text-white flex items-center gap-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 text-purple-500"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
+                                Journal d'Audit (Actions Récentes)
+                            </h3>
+                            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                                {(!adminLogs || adminLogs.length === 0) ? (
+                                    <div className="text-center py-10 bg-gray-50 dark:bg-fondSombre rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+                                        <p className="text-gray-500 dark:text-gray-400 italic">Aucune action administrative enregistrée pour le moment.</p>
+                                    </div>
+                                ) : (
+                                    adminLogs.map((log, index) => (
+                                        <div key={index} className="flex items-center gap-5 bg-gray-50/50 dark:bg-fondSombre p-5 rounded-xl border border-gray-200 dark:border-gray-700 transition-all hover:shadow-md hover:-translate-y-0.5">
+                                            <div className={`p-3 rounded-xl shadow-sm ${log.action === 'ban' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : log.action === 'cloture' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400'}`}>
+                                                {log.action === 'ban' ? '🔨' : log.action === 'cloture' ? '🔒' : '🗑️'}
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="font-bold text-gray-900 dark:text-white text-base">{log.description}</p>
+                                                <p className="text-sm text-gray-500 mt-1 flex items-center gap-1.5">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                    {new Date(log.created_at).toLocaleString()}
+                                                </p>
                                             </div>
                                         </div>
-                                        <div className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 font-bold px-4 py-1.5 rounded-full text-sm">
-                                            {s.votes_count || 0} votes
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* ONGLET : UTILISATEURS */}
-            {adminOngletActif === 'utilisateurs' && (
-                <div className="bg-white dark:bg-carteSombre rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden animate-fade-in">
-                    
-                    <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <h3 className="text-xl font-bold dark:text-white">Annuaire des Utilisateurs</h3>
-                        
-                        <div className="relative w-full sm:w-72">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                    ))
+                                )}
                             </div>
-                            <input 
-                                type="text" 
-                                placeholder="Chercher par nom ou email..." 
-                                value={rechercheUtilisateur}
-                                onChange={(e) => setRechercheUtilisateur(e.target.value)}
-                                className="w-full pl-10 p-2.5 bg-gray-50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-[#3b82f6] outline-none dark:text-white transition-colors"
-                            />
                         </div>
-                    </div>
+                    )}
 
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase">
-                                <tr>
-                                    <th className="p-4">Utilisateur</th>
-                                    <th className="p-4">Inscription</th>
-                                    <th className="p-4">Rôle</th>
-                                    <th className="p-4 text-center">Sondages créés</th>
-                                    <th className="p-4 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                                {utilisateursPaginees.map(u => {
-                                    const nbSondagesUtilisateur = tousLesSondages.filter(s => s.user_id === u.id).length;
-                                    return (
-                                        <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors">
-                                            <td className="p-4">
-                                                <p className="font-bold text-gray-900 dark:text-white">{u.name}</p>
-                                                <p className="text-sm text-gray-500">{u.email}</p>
-                                            </td>
-                                            <td className="p-4 text-gray-600 dark:text-gray-400">{new Date(u.created_at).toLocaleDateString()}</td>
-                                            <td className="p-4">
-                                                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${u.role === 'super_admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
-                                                    {u.role}
-                                                </span>
-                                            </td>
-                                            <td className="p-4 text-center font-bold">
-                                                <span className={nbSondagesUtilisateur > 20 ? "text-red-500" : "text-[#3b82f6]"}>
-                                                    {nbSondagesUtilisateur}
-                                                </span>
-                                            </td>
-                                            <td className="p-4 text-right">
-                                                {u.id !== user.id && (
-                                                    <button onClick={() => setUtilisateurASupprimer(u.id)} className="text-red-500 hover:text-red-700 font-bold text-sm bg-red-50 hover:bg-red-100 dark:bg-red-900/10 dark:hover:bg-red-900/30 px-3 py-1.5 rounded-lg transition-colors">
-                                                        Bannir
-                                                    </button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                        
-                        {utilisateursFiltres.length === 0 && (
-                            <div className="p-8 text-center text-gray-500 dark:text-gray-400 italic">
-                                Aucun utilisateur ne correspond à "{rechercheUtilisateur}"
+                    {adminOngletActif === 'profil' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="bg-white dark:bg-carteSombre p-6 md:p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">👤 Informations Administrateur</h3>
+                                <div className="mb-6 bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl border border-purple-100 dark:border-purple-800/50">
+                                    <p className="text-sm font-bold text-purple-700 dark:text-purple-400 uppercase">Rôle : {user.role.replace('_', ' ')}</p>
+                                    <p className="text-sm text-purple-600/80 dark:text-purple-400/80">Privilèges maximaux accordés.</p>
+                                </div>
+                                <form onSubmit={handleUpdateProfile} className="space-y-4">
+                                    <div><label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Nom</label><input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} required className="w-full p-3 bg-gray-50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-[#3b82f6] outline-none dark:text-white" /></div>
+                                    <div><label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Email</label><input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} required className="w-full p-3 bg-gray-50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-[#3b82f6] outline-none dark:text-white" /></div>
+                                    <button type="submit" disabled={loadingProfil} className="w-full bg-[#3b82f6] text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors">Mettre à jour</button>
+                                </form>
                             </div>
-                        )}
-
-                        {renderPagination(pageUtilisateurs, setPageUtilisateurs, totalPagesUsers)}
-                    </div>
-                </div>
-            )}
-
-            {/* ONGLET : SONDAGES */}
-            {adminOngletActif === 'sondages' && (
-                <div className="bg-white dark:bg-carteSombre rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden animate-fade-in">
-                    
-                    <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <h3 className="text-xl font-bold dark:text-white">Modération des contenus</h3>
-                            <p className="text-sm text-gray-500 mt-1">Vérifiez les questions et les résultats pour détecter les abus.</p>
-                        </div>
-                        
-                        <div className="relative w-full sm:w-72">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            <div className="bg-white dark:bg-carteSombre p-6 md:p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">🔒 Sécurité</h3>
+                                <form onSubmit={handleUpdatePassword} className="space-y-4">
+                                    <div><label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Mot de passe actuel</label><input type="password" value={pwdData.current_password} onChange={(e) => setPwdData({...pwdData, current_password: e.target.value})} required className="w-full p-3 bg-gray-50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none dark:text-white" /></div>
+                                    <div><label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Nouveau mot de passe</label><input type="password" value={pwdData.new_password} onChange={(e) => setPwdData({...pwdData, new_password: e.target.value})} required minLength={8} className="w-full p-3 bg-gray-50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none dark:text-white" /></div>
+                                    <div><label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Confirmer</label><input type="password" value={pwdData.new_password_confirmation} onChange={(e) => setPwdData({...pwdData, new_password_confirmation: e.target.value})} required minLength={8} className="w-full p-3 bg-gray-50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none dark:text-white" /></div>
+                                    <button type="submit" disabled={loadingProfil} className="w-full bg-gray-900 dark:bg-gray-700 text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition-colors">Changer le mot de passe</button>
+                                </form>
                             </div>
-                            <input 
-                                type="text" 
-                                placeholder="Chercher un titre de sondage..." 
-                                value={rechercheSondage}
-                                onChange={(e) => setRechercheSondage(e.target.value)}
-                                className="w-full pl-10 p-2.5 bg-gray-50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-[#3b82f6] outline-none dark:text-white transition-colors"
-                            />
                         </div>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase">
-                                <tr>
-                                    <th className="p-4">Sondage & Auteur</th>
-                                    <th className="p-4">Statut</th>
-                                    <th className="p-4">Votes</th>
-                                    <th className="p-4 text-right">Outils d'investigation</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                                {sondagesPagines.map(s => {
-                                    const estExpire = s.date_fin && new Date(s.date_fin) < new Date();
-                                    const auteur = tousLesUtilisateurs.find(u => u.id === s.user_id)?.name || 'Inconnu';
-
-                                    return (
-                                        <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors">
-                                            <td className="p-4">
-                                                <p className="font-bold text-gray-900 dark:text-white">{s.titre}</p>
-                                                <p className="text-xs text-gray-500 mt-1">
-                                                    Par <span className="font-bold text-[#3b82f6]">{auteur}</span> • {s.est_anonyme ? 'Votes Anonymes' : 'Votes Publics'}
-                                                </p>
-                                            </td>
-                                            <td className="p-4"><span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${estExpire ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{estExpire ? 'Expiré' : 'Actif'}</span></td>
-                                            <td className="p-4 font-bold text-gray-700 dark:text-gray-300">{s.votes_count || 0}</td>
-                                            <td className="p-4 flex justify-end gap-2">
-                                                <Link to={`/sondage/${s.id}`} className="text-emerald-600 hover:text-emerald-800 font-bold text-sm bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-lg flex items-center gap-1" title="Voir les questions posées">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                                    Aperçu
-                                                </Link>
-                                                <Link to={`/sondage/${s.id}/resultats`} className="text-blue-600 hover:text-blue-800 font-bold text-sm bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-lg flex items-center gap-1" title="Voir les données récoltées">
-                                                    📊 Résultats
-                                                </Link>
-                                                {!estExpire && <button onClick={() => setSondageACloturer(s.id)} className="text-orange-600 hover:text-orange-800 font-bold text-sm bg-orange-50 dark:bg-orange-900/20 px-3 py-1.5 rounded-lg">Clôturer</button>}
-                                                <button onClick={() => setSondageAdminASupprimer(s.id)} className="text-red-500 hover:text-red-700 font-bold text-sm bg-red-50 dark:bg-red-900/20 px-3 py-1.5 rounded-lg">Supprimer</button>
-                                            </td>
-                                        </tr>
-                                    )
-                                })}
-                            </tbody>
-                        </table>
-
-                        {sondagesFiltres.length === 0 && (
-                            <div className="p-8 text-center text-gray-500 dark:text-gray-400 italic">
-                                Aucun sondage ne correspond à "{rechercheSondage}"
-                            </div>
-                        )}
-
-                        {renderPagination(pageSondages, setPageSondages, totalPagesSondages)}
-                    </div>
-                </div>
-            )}
-
-            {/* ONGLET : PROFIL ADMIN */}
-            {adminOngletActif === 'profil' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in">
-                    <div className="bg-white dark:bg-carteSombre p-6 md:p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">👤 Informations Administrateur</h3>
-                        <div className="mb-6 bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl border border-purple-100 dark:border-purple-800/50">
-                            <p className="text-sm font-bold text-purple-700 dark:text-purple-400 uppercase">Rôle : {user.role.replace('_', ' ')}</p>
-                            <p className="text-sm text-purple-600/80 dark:text-purple-400/80">Privilèges maximaux accordés.</p>
-                        </div>
-                        <form onSubmit={handleUpdateProfile} className="space-y-4">
-                            <div><label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Nom</label><input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} required className="w-full p-3 bg-gray-50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-[#3b82f6] outline-none dark:text-white" /></div>
-                            <div><label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Email</label><input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} required className="w-full p-3 bg-gray-50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-[#3b82f6] outline-none dark:text-white" /></div>
-                            <button type="submit" disabled={loadingProfil} className="w-full bg-[#3b82f6] text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors">Mettre à jour</button>
-                        </form>
-                    </div>
-                    <div className="bg-white dark:bg-carteSombre p-6 md:p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">🔒 Sécurité</h3>
-                        <form onSubmit={handleUpdatePassword} className="space-y-4">
-                            <div><label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Mot de passe actuel</label><input type="password" value={pwdData.current_password} onChange={(e) => setPwdData({...pwdData, current_password: e.target.value})} required className="w-full p-3 bg-gray-50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none dark:text-white" /></div>
-                            <div><label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Nouveau mot de passe</label><input type="password" value={pwdData.new_password} onChange={(e) => setPwdData({...pwdData, new_password: e.target.value})} required minLength={8} className="w-full p-3 bg-gray-50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none dark:text-white" /></div>
-                            <div><label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Confirmer</label><input type="password" value={pwdData.new_password_confirmation} onChange={(e) => setPwdData({...pwdData, new_password_confirmation: e.target.value})} required minLength={8} className="w-full p-3 bg-gray-50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none dark:text-white" /></div>
-                            <button type="submit" disabled={loadingProfil} className="w-full bg-gray-900 dark:bg-gray-700 text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition-colors">Changer le mot de passe</button>
-                        </form>
-                    </div>
+                    )}
                 </div>
             )}
         </div>

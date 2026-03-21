@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import api from '../api/axios';
 import CreerSondage from '../components/creerSondage';
-
-// 🔥 Importation de nos deux nouveaux composants d'affichage
 import AdminView from '../components/AdminView';
 import UserView from '../components/UserView';
 
@@ -17,10 +15,13 @@ export default function Dashboard() {
     const [historiqueVotes, setHistoriqueVotes] = useState([]);
     const [tousLesUtilisateurs, setTousLesUtilisateurs] = useState([]);
     const [tousLesSondages, setTousLesSondages] = useState([]);
+    const [adminLogs, setAdminLogs] = useState([]); 
     const [adminOngletActif, setAdminOngletActif] = useState('dashboard');
     const [showToast, setShowToast] = useState({ visible: false, message: '', type: 'success' });
     const [pageActuelle, setPageActuelle] = useState(1);
     const sondagesParPage = 5;
+
+    const [donneesChargees, setDonneesChargees] = useState(false);
 
     // --- MODALES ---
     const [sondageASupprimer, setSondageASupprimer] = useState(null);
@@ -34,24 +35,41 @@ export default function Dashboard() {
     const [pwdData, setPwdData] = useState({ current_password: '', new_password: '', new_password_confirmation: '' });
     const [loadingProfil, setChargementProfil] = useState(false);
 
-    // --- LOGIQUE DE CHARGEMENT ---
+    // 🔥 CORRECTION ICI : Retour à la méthode de filtrage qui fonctionnait très bien !
     const chargerDonneesNormales = async (userId) => {
         try {
-            const resSondages = await api.get('/sondages');
-            setMesSondages(resSondages.data.filter(s => s.user_id === userId));
-            const resVotes = await api.get('/mes-votes');
+            const [resSondages, resVotes] = await Promise.all([
+                api.get('/sondages'), // On récupère tous les sondages
+                api.get('/mes-votes') // On récupère l'historique
+            ]);
+            
+            // On filtre côté React pour ne garder que ceux du bon utilisateur
+            setMesSondages(resSondages.data.filter(s => s.user_id === userId)); 
             setHistoriqueVotes(resVotes.data);
-        } catch (err) { console.error(err); }
+            
+        } catch (err) { 
+            console.error("Erreur chargement utilisateur :", err); 
+        } finally {
+            setDonneesChargees(true);
+        }
     };
 
     const chargerDonneesAdmin = async () => {
         try {
-            const [resUsers, resSondages] = await Promise.all([
-                api.get('/users'), api.get('/sondages')
+            const [resUsers, resSondages, resLogs] = await Promise.all([
+                api.get('/users'), 
+                api.get('/sondages'),
+                api.get('/admin/logs')
             ]);
             setTousLesUtilisateurs(resUsers.data);
             setTousLesSondages(resSondages.data);
-        } catch (err) { console.error(err); }
+            setAdminLogs(resLogs.data);
+            
+        } catch (err) { 
+            console.error("Erreur chargement admin :", err); 
+        } finally {
+            setDonneesChargees(true);
+        }
     };
 
     useEffect(() => {
@@ -66,6 +84,7 @@ export default function Dashboard() {
                 chargerDonneesAdmin();
                 if (location.pathname !== '/admin') navigate('/admin');
             } else {
+                // 🔥 CORRECTION : On passe bien l'ID de l'utilisateur à la fonction !
                 chargerDonneesNormales(parsedUser.id);
             }
         } else {
@@ -75,8 +94,14 @@ export default function Dashboard() {
 
     // --- LOGIQUE DES ACTIONS ---
     const handleSondageCree = () => {
-        if (user?.role === 'super_admin') { chargerDonneesAdmin(); navigate('/admin'); } 
-        else { chargerDonneesNormales(user.id); setPageActuelle(1); navigate('/mes-sondages'); }
+        if (user?.role === 'super_admin') { 
+            chargerDonneesAdmin(); 
+            navigate('/admin'); 
+        } else { 
+            chargerDonneesNormales(user.id); // 🔥 Ajout de l'ID ici aussi
+            setPageActuelle(1); 
+            navigate('/mes-sondages'); 
+        }
     };
 
     const afficherToast = (message, type = 'success') => {
@@ -118,14 +143,18 @@ export default function Dashboard() {
         try {
             await api.delete(`/users/${utilisateurASupprimer}`);
             setTousLesUtilisateurs(tousLesUtilisateurs.filter(u => u.id !== utilisateurASupprimer));
-            setUtilisateurASupprimer(null); afficherToast("Utilisateur banni !");
+            setUtilisateurASupprimer(null); 
+            chargerDonneesAdmin(); 
+            afficherToast("Utilisateur banni !");
         } catch (err) { afficherToast("Erreur", 'error'); setUtilisateurASupprimer(null); }
     };
 
     const confirmerCloture = async () => {
         try {
             await api.put(`/sondages/${sondageACloturer}/cloturer`);
-            chargerDonneesAdmin(); setSondageACloturer(null); afficherToast("Clôturé.");
+            chargerDonneesAdmin(); 
+            setSondageACloturer(null); 
+            afficherToast("Clôturé.");
         } catch (err) { afficherToast("Erreur", 'error'); setSondageACloturer(null); }
     };
 
@@ -133,7 +162,9 @@ export default function Dashboard() {
         try {
             await api.delete(`/sondages/${sondageAdminASupprimer}`);
             setTousLesSondages(tousLesSondages.filter(s => s.id !== sondageAdminASupprimer));
-            setSondageAdminASupprimer(null); afficherToast("Effacé.");
+            setSondageAdminASupprimer(null); 
+            chargerDonneesAdmin(); 
+            afficherToast("Effacé.");
         } catch (err) { afficherToast("Erreur", 'error'); setSondageAdminASupprimer(null); }
     };
 
@@ -143,7 +174,13 @@ export default function Dashboard() {
     };
 
     // --- COMPOSANTS VISUELS PARTAGÉS (Toasts & Modales) ---
-    if (!user) return <p className="text-center p-8 dark:text-white">Chargement...</p>;
+    
+    if (!user) return (
+        <div className="min-h-[60vh] flex flex-col items-center justify-center animate-fade-in">
+            <div className="w-12 h-12 border-4 border-blue-200 border-t-[#3b82f6] dark:border-gray-700 dark:border-t-blue-400 rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-500 dark:text-gray-400 font-medium">Chargement de votre session...</p>
+        </div>
+    );
 
     const ToastComponent = () => (
         <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 transition-all duration-500 transform ${showToast.visible ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0 pointer-events-none'} ${showToast.type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'}`}>
@@ -170,16 +207,16 @@ export default function Dashboard() {
         <div className="container mx-auto p-4 md:p-8 transition-colors duration-300 max-w-7xl">
             <ToastComponent />
             
-            {/* Affichage des Modales Communes */}
             {sondageASupprimer && renderModal("Supprimer ?", "Irréversible.", "🗑️", "bg-red-100 text-red-600 dark:bg-red-900/30", confirmerSuppression, () => setSondageASupprimer(null), "Supprimer")}
             {utilisateurASupprimer && renderModal("Bannir ?", "Action irréversible.", "⚠️", "bg-red-100 text-red-600 dark:bg-red-900/30", confirmerSuppressionUtilisateur, () => setUtilisateurASupprimer(null), "Bannir")}
             {sondageACloturer && renderModal("Clôturer ?", "Votes bloqués.", "🔒", "bg-orange-100 text-orange-600 dark:bg-orange-900/30", confirmerCloture, () => setSondageACloturer(null), "Clôturer")}
             {sondageAdminASupprimer && renderModal("Supprimer ?", "Définitif.", "🗑️", "bg-red-100 text-red-600 dark:bg-red-900/30", confirmerSuppressionSondageAdmin, () => setSondageAdminASupprimer(null), "Supprimer")}
 
-            {/* Aiguillage vers le bon composant selon le rôle et l'URL */}
             {user.role === 'super_admin' ? (
                 <AdminView 
+                    donneesChargees={donneesChargees} 
                     user={user} tousLesUtilisateurs={tousLesUtilisateurs} tousLesSondages={tousLesSondages}
+                    adminLogs={adminLogs}
                     adminOngletActif={adminOngletActif} setAdminOngletActif={setAdminOngletActif}
                     setUtilisateurASupprimer={setUtilisateurASupprimer} setSondageACloturer={setSondageACloturer} setSondageAdminASupprimer={setSondageAdminASupprimer}
                     editName={editName} setEditName={setEditName} editEmail={editEmail} setEditEmail={setEditEmail} pwdData={pwdData} setPwdData={setPwdData}
@@ -191,7 +228,8 @@ export default function Dashboard() {
                 <Navigate to="/mes-sondages" replace />
             ) : (
                 <UserView 
-                    vueActuelle={location.pathname.replace('/', '')} // 'mes-sondages' ou 'profil'
+                    donneesChargees={donneesChargees}
+                    vueActuelle={location.pathname.replace('/', '')}
                     mesSondages={mesSondages} historiqueVotes={historiqueVotes} pageActuelle={pageActuelle} setPageActuelle={setPageActuelle}
                     sondagesParPage={sondagesParPage} setSondageASupprimer={setSondageASupprimer} handlePartager={handlePartager}
                     editName={editName} setEditName={setEditName} editEmail={editEmail} setEditEmail={setEditEmail} pwdData={pwdData} setPwdData={setPwdData}

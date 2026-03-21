@@ -1,4 +1,3 @@
-// src/components/ResultatsTableauPrint.jsx
 export default function ResultatsTableauPrint({ sondage, statistiques, participants }) {
     return (
         <div className="hidden print:block mb-8">

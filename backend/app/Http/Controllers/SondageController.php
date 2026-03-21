@@ -212,7 +212,20 @@ class SondageController extends Controller
             ], 403);
         }
 
+        $titreSondage = $sondage->titre; // On garde le titre avant la suppression pour les logs
+
         try {
+            // 🔥 NOUVEAU : Enregistrer l'action d'audit si c'est le Super Admin
+            if ($user->role === 'super_admin') {
+                DB::table('admin_logs')->insert([
+                    'user_id' => $user->id,
+                    'action' => 'delete',
+                    'description' => "A supprimé le sondage : " . $titreSondage,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
+
             $sondage->delete();
             return response()->json(['message' => 'Sondage supprimé avec succès.']);
         } catch (\Exception $e) {
@@ -232,6 +245,15 @@ class SondageController extends Controller
 
         $sondage = Sondage::findOrFail($id);
         $sondage->update(['date_fin' => now()]); 
+
+        // 🔥 NOUVEAU : Enregistrer l'action d'audit
+        DB::table('admin_logs')->insert([
+            'user_id' => $request->user()->id,
+            'action' => 'cloture',
+            'description' => "A clôturé le sondage : " . $sondage->titre,
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
 
         return response()->json(['message' => 'Le sondage a été clôturé avec succès.']);
     }

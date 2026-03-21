@@ -1,5 +1,4 @@
-import React from 'react';
-
+import React from 'react';  
 export default function QuestionSondage({ q, index, reponses, handleTextChange, handleRadioChange, handleCheckboxChange }) {
     return (
         <div className="p-6 bg-gray-50 dark:bg-fondSombre rounded-xl border border-gray-100 dark:border-gray-600">

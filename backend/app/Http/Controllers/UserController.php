@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash; // Ajout important pour le mot de passe
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB; // 🔥 Ajout pour pouvoir interagir avec la table admin_logs
 
 class UserController extends Controller
 {
@@ -17,12 +18,27 @@ class UserController extends Controller
     // Supprimer un utilisateur (Pour l'admin)
     public function destroy(Request $request, $id)
     {
-        $user = User::findOrFail($id);
-        $user->delete();
-        return response()->json(['message' => 'Utilisateur supprimé avec succès.']);
+        $userToDelete = User::findOrFail($id);
+        $nomUtilisateur = $userToDelete->name; // On sauvegarde le nom avant de le détruire
+
+        // 🔥 NOUVEAU : Enregistrer l'action dans le journal d'audit pour le Super Admin
+        if ($request->user() && $request->user()->role === 'super_admin') {
+            DB::table('admin_logs')->insert([
+                'user_id' => $request->user()->id, // L'ID du Super Admin qui fait l'action
+                'action' => 'ban',
+                'description' => "A banni l'utilisateur : " . $nomUtilisateur,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        }
+
+        // Ensuite on supprime l'utilisateur
+        $userToDelete->delete();
+
+        return response()->json(['message' => 'Utilisateur banni avec succès.']);
     }
 
-    // --- NOUVEAU : METTRE À JOUR LE PROFIL (Nom, Email) ---
+    // --- METTRE À JOUR LE PROFIL (Nom, Email) ---
     public function updateProfile(Request $request)
     {
         $user = $request->user();
@@ -40,7 +56,7 @@ class UserController extends Controller
         ]);
     }
 
-    // --- NOUVEAU : CHANGER LE MOT DE PASSE ---
+    // --- CHANGER LE MOT DE PASSE ---
     public function updatePassword(Request $request)
     {
         $user = $request->user();
@@ -59,5 +75,45 @@ class UserController extends Controller
         ]);
 
         return response()->json(['message' => 'Mot de passe modifié avec succès.']);
+    }
+
+    // --- HISTORIQUE POUR LE SUPER ADMIN ---
+    public function historiqueUtilisateur($id)
+    {
+        $user = User::findOrFail($id);
+        
+        $sondagesCrees = \App\Models\Sondage::where('user_id', $id)->withCount('votes')->latest()->get();
+        
+        $votes = \App\Models\Vote::where('user_id', $id)->with('sondage:id,titre')->latest()->get();
+
+        // Récupération des logs si l'utilisateur est admin
+        $adminLogs = [];
+        if ($user->role === 'super_admin') {
+            $adminLogs = DB::table('admin_logs')
+                ->where('user_id', $id)
+                ->orderBy('created_at', 'desc')
+                ->get();
+        }
+
+        return response()->json([
+            'user' => $user,
+            'sondages_crees' => $sondagesCrees,
+            'historique_votes' => $votes,
+            'admin_logs' => $adminLogs 
+        ]);
+    }
+    // --- NOUVEAU : RÉCUPÉRER L'HISTORIQUE GLOBAL POUR LE SUPER ADMIN ---
+    public function getAdminLogs(Request $request)
+    {
+        if ($request->user()->role !== 'super_admin') {
+            return response()->json(['message' => 'Accès refusé.'], 403);
+        }
+
+        // On récupère toutes les actions, de la plus récente à la plus ancienne
+        $logs = \Illuminate\Support\Facades\DB::table('admin_logs')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($logs);
     }
 }

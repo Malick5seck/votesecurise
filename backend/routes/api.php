@@ -14,6 +14,9 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/sondages', [SondageController::class, 'index']); 
 Route::get('/sondages/{id}', [SondageController::class, 'show']); 
 
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+
 // 🔴 ROUTES PROTÉGÉES (Nécessite le token Sanctum)
 Route::middleware(['auth:sanctum'])->group(function () {
     

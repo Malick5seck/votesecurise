@@ -7,6 +7,7 @@ use App\Models\Sondage;
 use App\Models\Vote;
 use App\Models\Reponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log; // <-- Ajout obligatoire pour journaliser les accès refusés
 
 class VoteController extends Controller
 {
@@ -16,9 +17,30 @@ class VoteController extends Controller
         $sondage = Sondage::findOrFail($sondage_id);
 
         // --- SÉCURITÉ 1 : Vérification stricte de la date limite ---
-        // On utilise Carbon::parse() pour éviter l'erreur 500 si la date est en format texte
         if ($sondage->date_fin && \Carbon\Carbon::parse($sondage->date_fin)->isPast()) {
             return response()->json(['message' => 'Ce sondage a expiré. Les votes sont clos.'], 403);
+        }
+
+        // --- SÉCURITÉ 1.5 : Vérification des accès (Sondage Privé) ---
+        if ($sondage->est_prive) {
+            if (!$user) {
+                return response()->json(['message' => 'Vous devez être connecté pour participer à ce sondage privé.'], 401);
+            }
+
+            // Vérification du domaine restreint (ex: @gmail.com)
+            if (!empty($sondage->domaine_restreint) && !str_ends_with($user->email, $sondage->domaine_restreint)) {
+                Log::warning("Accès refusé au sondage {$sondage->id} pour l'email {$user->email} (Domaine non autorisé)");
+                return response()->json(['message' => 'Vous n’êtes pas autorisé à participer à ce sondage privé.'], 403);
+            }
+
+            // Vérification de la liste blanche d'emails (emails_autorises)
+            // Assure-toi que 'emails_autorises' est bien "casté" en 'array' dans ton Model Sondage.php
+            if (!empty($sondage->emails_autorises) && is_array($sondage->emails_autorises)) {
+                if (!in_array($user->email, $sondage->emails_autorises)) {
+                    Log::warning("Accès refusé au sondage {$sondage->id} pour l'email {$user->email} (Non présent dans la liste blanche)");
+                    return response()->json(['message' => 'Vous n’êtes pas autorisé à participer à ce sondage privé.'], 403);
+                }
+            }
         }
 
         // --- SÉCURITÉ 2 : Anti Double-Vote ---

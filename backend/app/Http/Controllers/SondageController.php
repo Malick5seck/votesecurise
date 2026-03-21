@@ -27,6 +27,7 @@ class SondageController extends Controller
     // --- 2. CRÉER UN NOUVEAU SONDAGE ---
     public function store(Request $request)
     {
+        // 1. Validation avec les nouveaux champs de restriction
         $validated = $request->validate([
             'titre' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -34,10 +35,11 @@ class SondageController extends Controller
             'est_prive' => 'boolean',
             'date_debut' => 'nullable|date',
             'date_fin' => 'nullable|date|after_or_equal:date_debut',
+            'domaine_restreint' => 'nullable|string', // <-- NOUVEAU
+            'emails_autorises' => 'nullable|array',   // <-- NOUVEAU
             'message_remerciement' => 'nullable|string',
             'questions' => 'required|array|min:1',
             'questions.*.titre' => 'required|string',
-            // 🚨 MISE À JOUR ICI : On autorise tous tes nouveaux types d'options !
             'questions.*.type' => 'required|string|in:qcm,checkbox,text,rating,ranking,matrix,condition,boolean,number,date,likert,slider',
             'questions.*.obligatoire' => 'boolean',
             'questions.*.options' => 'nullable|array',
@@ -46,15 +48,18 @@ class SondageController extends Controller
         try {
             DB::beginTransaction();
 
+            // 2. Création du sondage avec les restrictions
             $sondage = Sondage::create([
                 'user_id' => $request->user()->id,
                 'titre' => $validated['titre'],
                 'description' => $validated['description'] ?? null,
-                'slug' => Str::random(10),
+                'slug' => Str::slug($validated['titre']) . '-' . Str::random(10), // Modification pour avoir un slug plus sûr
                 'est_anonyme' => $request->est_anonyme ?? true,
                 'est_prive' => $request->est_prive ?? false,
                 'date_debut' => $validated['date_debut'] ?? null,
                 'date_fin' => $validated['date_fin'] ?? null,
+                'domaine_restreint' => $validated['domaine_restreint'] ?? null, // <-- NOUVEAU
+                'emails_autorises' => $validated['emails_autorises'] ?? null,   // <-- NOUVEAU
                 'message_remerciement' => $validated['message_remerciement'] ?? null,
             ]);
 
@@ -66,7 +71,6 @@ class SondageController extends Controller
                     'obligatoire' => $qData['obligatoire'] ?? true,
                 ]);
 
-                // 🚨 MISE À JOUR ICI : On sauvegarde les options pour tous les types qui en ont besoin
                 if (in_array($qData['type'], ['qcm', 'checkbox', 'likert', 'boolean', 'ranking', 'matrix']) && !empty($qData['options'])) {
                     foreach ($qData['options'] as $optContenu) {
                         Option::create([
@@ -113,7 +117,8 @@ class SondageController extends Controller
         $sondage = Sondage::with('questions.options')->findOrFail($id);
         $user = $request->user();
 
-        if ($sondage->user_id !== $user->id) {
+        // Le Super Admin peut aussi voir les résultats
+        if ($sondage->user_id !== $user->id && $user->role !== 'super_admin') {
             return response()->json([
                 'message' => 'Accès refusé (Confidentiel). Seul le créateur de ce sondage peut consulter les résultats.'
             ], 403);
@@ -129,7 +134,6 @@ class SondageController extends Controller
                 'type' => $question->type,
             ];
 
-            // Pourcentage pour les nouveaux types à choix
             if (in_array($question->type, ['qcm', 'checkbox', 'likert', 'boolean', 'ranking', 'matrix'])) {
                 $optionsStats = [];
                 foreach ($question->options as $option) {
@@ -146,7 +150,6 @@ class SondageController extends Controller
                 }
                 $statsQuestion['options'] = $optionsStats;
             } 
-            // Affichage des textes pour date, nombre et texte libre
             elseif (in_array($question->type, ['text', 'number', 'date'])) {
                 $statsQuestion['reponses_textes'] = Reponse::where('question_id', $question->id)
                                                 ->whereNotNull('valeur_texte')
@@ -154,7 +157,6 @@ class SondageController extends Controller
                                                 ->take(10)
                                                 ->pluck('valeur_texte');
             } 
-            // Moyenne mathématique pour les notes et les sliders
             elseif (in_array($question->type, ['rating', 'slider'])) {
                 $moyenne = Reponse::where('question_id', $question->id)->avg('valeur_texte');
                 $statsQuestion['moyenne'] = $moyenne ? round($moyenne, 1) : 0;
@@ -163,7 +165,6 @@ class SondageController extends Controller
             $statistiques[] = $statsQuestion;
         }
 
-        // 🚨 NOUVEAUTÉ POUR LE PDF : Historique détaillé de chaque participant
         $votesDetail = $sondage->votes()->with(['user', 'reponses.option'])->orderBy('created_at', 'asc')->get();
         
         $participants = $votesDetail->map(function ($vote) use ($sondage) {
@@ -190,10 +191,11 @@ class SondageController extends Controller
                 'id' => $sondage->id,
                 'titre' => $sondage->titre,
                 'total_votes' => $totalVotes,
-                'est_anonyme' => $sondage->est_anonyme // On envoie l'info à React
+                'est_anonyme' => $sondage->est_anonyme,
+                'description' => $sondage->description
             ],
             'statistiques' => $statistiques,
-            'participants' => $participants // On envoie la liste pour le tableau PDF
+            'participants' => $participants 
         ]);
     }
 
@@ -201,18 +203,17 @@ class SondageController extends Controller
     public function destroy(Request $request, $id)
     {
         $sondage = Sondage::findOrFail($id);
+        $user = $request->user();
 
-        // SÉCURITÉ : On vérifie que seul le créateur peut supprimer son sondage
-        if ($sondage->user_id !== $request->user()->id) {
+        // SÉCURITÉ : Le créateur OU le super admin peuvent supprimer
+        if ($sondage->user_id !== $user->id && $user->role !== 'super_admin') {
             return response()->json([
                 'message' => 'Action non autorisée. Vous n\'êtes pas le propriétaire de ce sondage.'
             ], 403);
         }
 
         try {
-            // Laravel va supprimer le sondage
             $sondage->delete();
-            
             return response()->json(['message' => 'Sondage supprimé avec succès.']);
         } catch (\Exception $e) {
             return response()->json([
@@ -221,6 +222,7 @@ class SondageController extends Controller
             ], 500);
         }
     }
+
     // --- 6. FORCER LA CLÔTURE D'UN SONDAGE (Super Admin) ---
     public function cloturer(Request $request, $id)
     {
@@ -229,7 +231,7 @@ class SondageController extends Controller
         }
 
         $sondage = Sondage::findOrFail($id);
-        $sondage->update(['date_fin' => now()]); // On met la date de fin à l'instant T
+        $sondage->update(['date_fin' => now()]); 
 
         return response()->json(['message' => 'Le sondage a été clôturé avec succès.']);
     }

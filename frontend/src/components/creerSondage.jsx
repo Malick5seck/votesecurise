@@ -6,8 +6,11 @@ export default function CreerSondage({ onSondageCree }) {
     const [description, setDescription] = useState('');
     const [dateFin, setDateFin] = useState('');
     const [estPublic, setEstPublic] = useState(true); 
-    // NOUVEAU : État pour l'anonymat
     const [estAnonyme, setEstAnonyme] = useState(false); 
+    
+    // 🔥 NOUVEAU : États pour la sécurité avancée
+    const [domaineRestreint, setDomaineRestreint] = useState('');
+    const [emailsAutorises, setEmailsAutorises] = useState('');
 
     const [questions, setQuestions] = useState([
         { id: Date.now(), titre: '', type: 'qcm', obligatoire: true, options: ['', ''] }
@@ -37,13 +40,21 @@ export default function CreerSondage({ onSondageCree }) {
         e.preventDefault();
         setErreur('');
         setChargement(true);
+        
+        // Formatage de la liste d'emails (on enlève les espaces vides)
+        const listeEmails = emailsAutorises.trim() !== '' 
+            ? emailsAutorises.split(',').map(email => email.trim()).filter(email => email !== '')
+            : null;
+
         try {
             await api.post('/sondages', {
                 titre, 
                 description, 
                 date_fin: dateFin || null, 
                 est_prive: !estPublic, 
-                est_anonyme: estAnonyme, // LA VARIABLE EST BIEN ENVOYÉE ICI
+                est_anonyme: estAnonyme,
+                domaine_restreint: domaineRestreint.trim() !== '' ? domaineRestreint.trim() : null, // Envoi à Laravel
+                emails_autorises: listeEmails, // Envoi à Laravel
                 questions: questions.map(q => ({
                     titre: q.titre, type: q.type, obligatoire: q.obligatoire,
                     options: typesAvecOptions.includes(q.type) ? q.options.filter(opt => opt.trim() !== '') : []
@@ -78,8 +89,8 @@ export default function CreerSondage({ onSondageCree }) {
                         <textarea rows="3" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Décrivez votre sondage..." className="w-full p-2.5 bg-gray-50/50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-y"></textarea>
                     </div>
                     
-                    {/* LIGNE DES OPTIONS (Date, Public, Anonyme) */}
-                    <div className="flex flex-wrap items-center gap-8">
+                    {/* LIGNE DES OPTIONS */}
+                    <div className="flex flex-wrap items-center gap-8 mb-4">
                         <div>
                             <label className="block text-sm font-semibold mb-2">Date d'expiration</label>
                             <input type="date" value={dateFin} onChange={(e) => setDateFin(e.target.value)} className="w-48 p-2.5 bg-gray-50/50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm text-gray-500" />
@@ -93,7 +104,6 @@ export default function CreerSondage({ onSondageCree }) {
                             </label>
                         </div>
 
-                        {/* LE NOUVEAU BOUTON ANONYME IDENTIQUE */}
                         <div className="flex items-center pt-6">
                             <label className="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" className="sr-only peer" checked={estAnonyme} onChange={(e) => setEstAnonyme(e.target.checked)} />
@@ -102,6 +112,46 @@ export default function CreerSondage({ onSondageCree }) {
                             </label>
                         </div>
                     </div>
+
+                    {/* 🔥 NOUVEAU BLOC : SÉCURITÉ AVANCÉE (Affiché uniquement si sondage PRIVE) */}
+                    {!estPublic && (
+                        <div className="mt-6 p-5 bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-200 dark:border-orange-800 animate-fade-in">
+                            <h4 className="font-bold text-orange-800 dark:text-orange-400 mb-2 flex items-center gap-2">
+                                <span>🛡️</span> Restrictions d'accès (Optionnel)
+                            </h4>
+                            <p className="text-sm text-orange-600 dark:text-orange-300 mb-5">
+                                Laissez vide pour que le sondage privé soit accessible à toute personne connectée possédant le lien.
+                            </p>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
+                                        Restreindre à un domaine email spécifique
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="ex: @gmail.com ou @monentreprise.com" 
+                                        value={domaineRestreint} 
+                                        onChange={(e) => setDomaineRestreint(e.target.value)} 
+                                        className="w-full p-3 bg-white dark:bg-fondSombre border border-orange-200 dark:border-orange-700 rounded-lg focus:ring-2 focus:ring-orange-400 outline-none dark:text-white transition-colors" 
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
+                                        Ou créer une liste blanche (Emails précis)
+                                    </label>
+                                    <textarea 
+                                        placeholder="jean@gmail.com, marie@entreprise.com" 
+                                        value={emailsAutorises} 
+                                        onChange={(e) => setEmailsAutorises(e.target.value)} 
+                                        className="w-full p-3 bg-white dark:bg-fondSombre border border-orange-200 dark:border-orange-700 rounded-lg focus:ring-2 focus:ring-orange-400 outline-none dark:text-white transition-colors text-sm" 
+                                        rows="3" 
+                                    />
+                                    <span className="text-xs text-orange-500 font-medium mt-1 inline-block">Séparez les adresses email par des virgules.</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* BLOC 2 : QUESTIONS */}

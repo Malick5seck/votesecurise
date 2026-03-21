@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import api from '../api/axios';
 import axios from 'axios';
-// CORRECTION 1 : J'ai ajouté Link ici !
 import { useNavigate, Link } from 'react-router-dom'; 
 
 export default function Login() {
@@ -56,7 +55,13 @@ export default function Login() {
                         />
                     </div>
                     <div>
-                        <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Mot de passe</label>
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold">Mot de passe</label>
+                            {/* 🔥 NOUVEAU : Le lien "Mot de passe oublié" */}
+                            <Link to="/forgot-password" className="text-sm font-bold text-[#3b82f6] hover:underline">
+                                Mot de passe oublié ?
+                            </Link>
+                        </div>
                         <input 
                             type="password" 
                             value={password}
@@ -74,7 +79,6 @@ export default function Login() {
                     
                 </form>
                 
-                {/* CORRECTION 2 : Le bon texte et la bonne redirection vers l'inscription */}
                 <div className="mt-6 text-center border-t border-gray-200 dark:border-gray-700 pt-4">
                     <p className="text-gray-600 dark:text-gray-400">
                         Vous n'avez pas encore de compte ?{' '}

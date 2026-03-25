@@ -11,53 +11,18 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'role',
-    ];
+    protected $fillable = ['name','email','password','role'];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
+    protected $hidden = ['password','remember_token'];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return ['email_verified_at' => 'datetime','password' => 'hashed'];
     }
 
-    // Relation avec les sondages créés par l'utilisateur
-    public function sondages()
-    {
-        return $this->hasMany(Sondage::class);
-    }
+    public function sondages(){return $this->hasMany(Sondage::class);}
 
-    // Un utilisateur peut effectuer plusieurs votes
-    public function votes()
-    {
-        return $this->hasMany(Vote::class);
-    }
+    public function votes(){return $this->hasMany(Vote::class);}
 }

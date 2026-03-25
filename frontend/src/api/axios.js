@@ -9,8 +9,6 @@ const api = axios.create({
     withCredentials: true 
 });
 
-// --- LE PASSAGE MANQUANT : L'INTERCEPTEUR ---
-// Avant chaque requête sortante, ce code va s'exécuter
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
     

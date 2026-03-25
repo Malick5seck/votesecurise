@@ -3,7 +3,6 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import HistoriqueUtilisateur from './pages/HistoriqueUtilisateur';
 
-// Pages
 import Accueil from './pages/accueil';
 import Login from './pages/login';
 import Dashboard from './pages/dashboard';
@@ -18,8 +17,6 @@ function App() {
     <div className="min-h-screen flex flex-col transition-colors duration-300">
       
       <Navbar />
-
-      {/* Le main retrouve son comportement instantané */}
       <main className="flex-grow bg-fond dark:bg-fondSombre transition-colors duration-300 overflow-x-hidden">
         <Routes>
           <Route path="/" element={<Accueil />} />

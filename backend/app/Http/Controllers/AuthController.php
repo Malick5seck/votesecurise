@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
-    // --- INSCRIPTION ---
+    // fonction pour l'inscription 
     public function register(Request $request)
     {
         $request->validate([
@@ -38,7 +38,7 @@ class AuthController extends Controller
         ], 201);
     }
 
-    // --- CONNEXION ---
+    // fonction pour la connexion
     public function login(Request $request)
     {
         $request->validate([
@@ -47,7 +47,7 @@ class AuthController extends Controller
         ]);
 
         $user = User::where('email', $request->email)->first();
-
+        
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Les identifiants fournis sont incorrects.'],
@@ -63,7 +63,7 @@ class AuthController extends Controller
         ]);
     }
 
-    // --- DÉCONNEXION ---
+    // fonction pour la déconnexion
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
@@ -73,12 +73,9 @@ class AuthController extends Controller
         ]);
     }
 
-    // ==========================================================
-    // --- DEMANDE DE RÉINITIALISATION DE MOT DE PASSE
-    // ==========================================================
+    // fonction pour la demande de réinitialisation de mot de passe
     public function forgotPassword(Request $request)
     {
-        // 🚀 Laravel vérifie automatiquement ici que c'est une adresse email valide (n'importe quel domaine)
         $request->validate(['email' => 'required|email']);
 
         $user = User::where('email', $request->email)->first();
@@ -88,7 +85,7 @@ class AuthController extends Controller
         }
 
         $token = Str::random(60);
-
+ 
         DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $user->email],
             ['token' => Hash::make($token), 'created_at' => Carbon::now()]
@@ -130,9 +127,7 @@ class AuthController extends Controller
         }
     }
 
-    // ==========================================================
-    // --- VALIDATION DU NOUVEAU MOT DE PASSE
-    // ==========================================================
+    // fonction pour la validation du nouveau mot de passe
     public function resetPassword(Request $request)
     {
         $request->validate([

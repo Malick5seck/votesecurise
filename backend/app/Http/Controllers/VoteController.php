@@ -7,21 +7,18 @@ use App\Models\Sondage;
 use App\Models\Vote;
 use App\Models\Reponse;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log; // <-- Ajout obligatoire pour journaliser les accès refusés
-
+use Illuminate\Support\Facades\Log;
 class VoteController extends Controller
 {
     public function voter(Request $request, $sondage_id)
     {
-        $user = $request->user(); // Récupère l'utilisateur connecté
+        $user = $request->user(); 
         $sondage = Sondage::findOrFail($sondage_id);
 
-        // --- SÉCURITÉ 1 : Vérification stricte de la date limite ---
         if ($sondage->date_fin && \Carbon\Carbon::parse($sondage->date_fin)->isPast()) {
             return response()->json(['message' => 'Ce sondage a expiré. Les votes sont clos.'], 403);
         }
 
-        // --- SÉCURITÉ 1.5 : Vérification des accès (Sondage Privé) ---
         if ($sondage->est_prive) {
             if (!$user) {
                 return response()->json(['message' => 'Vous devez être connecté pour participer à ce sondage privé.'], 401);
@@ -32,9 +29,7 @@ class VoteController extends Controller
                 Log::warning("Accès refusé au sondage {$sondage->id} pour l'email {$user->email} (Domaine non autorisé)");
                 return response()->json(['message' => 'Vous n’êtes pas autorisé à participer à ce sondage privé.'], 403);
             }
-
-            // Vérification de la liste blanche d'emails (emails_autorises)
-            // Assure-toi que 'emails_autorises' est bien "casté" en 'array' dans ton Model Sondage.php
+            // Vérification de la liste blanche d'emails autorisés
             if (!empty($sondage->emails_autorises) && is_array($sondage->emails_autorises)) {
                 if (!in_array($user->email, $sondage->emails_autorises)) {
                     Log::warning("Accès refusé au sondage {$sondage->id} pour l'email {$user->email} (Non présent dans la liste blanche)");
@@ -43,7 +38,7 @@ class VoteController extends Controller
             }
         }
 
-        // --- SÉCURITÉ 2 : Anti Double-Vote ---
+        //assurer que l'utilisateur ne vote qu'une seule fois pour un sondage 
         $dejaVote = false;
         if ($user) {
             $dejaVote = Vote::where('user_id', $user->id)
@@ -55,28 +50,26 @@ class VoteController extends Controller
             return response()->json(['message' => 'Vous avez déjà voté pour ce sondage.'], 403);
         }
 
-        // --- SÉCURITÉ 3 : Validation du format (avec la nouveauté est_anonyme) ---
         $validated = $request->validate([
             'reponses' => 'required|array',
             'reponses.*.question_id' => 'required|exists:questions,id',
             'reponses.*.option_id' => 'nullable|exists:options,id',
             'reponses.*.valeur_texte' => 'nullable|string',
-            'est_anonyme' => 'boolean' // <-- NOUVEAUTÉ : On autorise le champ anonyme
+            'est_anonyme' => 'boolean' 
         ]);
 
-        // --- ENREGISTREMENT SÉCURISÉ ---
         try {
             DB::beginTransaction();
 
-            // 1. Création du "Ticket de vote"
+            // Si l'utilisateur est connecté et que le vote n'est pas anonyme, on associe le vote à son ID. Sinon, user_id reste null pour garantir l'anonymat
             $vote = Vote::create([
                 'user_id' => $user ? $user->id : null,
                 'sondage_id' => $sondage->id,
                 'adresse_ip' => $request->ip(),
-                'est_anonyme' => $request->est_anonyme ?? false // <-- NOUVEAUTÉ : On sauvegarde le choix
+                'est_anonyme' => $request->est_anonyme ?? false 
             ]);
 
-            // 2. Enregistrement du détail des réponses (QCM, Texte, Checkbox...)
+            // Enregistrement des réponses associées
             foreach ($validated['reponses'] as $rep) {
                 Reponse::create([
                     'vote_id' => $vote->id,
@@ -96,7 +89,7 @@ class VoteController extends Controller
         }
     }
     
-    // --- RÉCUPÉRER L'HISTORIQUE DES VOTES DE L'UTILISATEUR ---
+    // fonction pour afficher les votes d'un utilisateur
     public function mesVotes(Request $request)
     {
         $votes = Vote::with('sondage')

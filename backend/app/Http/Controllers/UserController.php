@@ -15,17 +15,22 @@ class UserController extends Controller
     }
 
     // bannir un utilisateur 
+   // bannir un utilisateur 
     public function destroy(Request $request, $id)
     {
         $userToDelete = User::findOrFail($id);
         $nomUtilisateur = $userToDelete->name; 
+        
+        // On récupère le motif depuis la requête, ou on met un texte par défaut s'il est vide
+        $motif = $request->input('motif', 'Aucun motif fourni');
 
         // Enregistrer l'action de bannissement dans les logs d'administration
         if ($request->user() && $request->user()->role === 'super_admin') {
             DB::table('admin_logs')->insert([
                 'user_id' => $request->user()->id,
                 'action' => 'ban',
-                'description' => "A banni l'utilisateur : " . $nomUtilisateur,
+                // 🔥 On ajoute le motif dans la description sauvegardée !
+                'description' => "A banni l'utilisateur : {$nomUtilisateur}. Motif : {$motif}",
                 'created_at' => now(),
                 'updated_at' => now()
             ]);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react'; // <-- Ajout de useRef
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 
@@ -6,6 +6,9 @@ export default function ListeSondages() {
     const [sondages, setSondages] = useState([]);
     const [chargement, setChargement] = useState(true);
     const navigate = useNavigate();
+    
+    // <-- NOUVEAU : Création d'une référence pour cibler la liste
+    const listeRef = useRef(null); 
 
     // --- PAGINATION ---
     const [pageActuelle, setPageActuelle] = useState(1);
@@ -17,14 +20,12 @@ export default function ListeSondages() {
                 const reponse = await api.get('/sondages');
                 const maintenant = new Date();
                 
-                // On garde les sondages publics (est_prive === 0/false) qui ne sont pas expirés
                 const sondagesActifs = reponse.data.filter(sondage => {
                     if (sondage.est_prive) return false;
                     if (!sondage.date_fin) return true;
                     return new Date(sondage.date_fin) > maintenant;
                 });
 
-                // On trie par date de création (les plus récents en premier)
                 const sondagesTries = sondagesActifs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
                 setSondages(sondagesTries);
@@ -47,13 +48,18 @@ export default function ListeSondages() {
         }
     };
 
-    // Remonter en haut au changement de page
+    // <-- CORRECTION : Scroll dynamique et précis au changement de page
     useEffect(() => {
-        // On remonte doucement mais on s'arrête un peu avant tout en haut pour que l'utilisateur comprenne qu'il a changé de page
-        window.scrollTo({ top: 400, behavior: 'smooth' });
+        // On vérifie que la référence existe bien sur la page
+        if (listeRef.current) {
+            // Calcule la position exacte du haut de la liste de sondages
+            // Le "- 100" permet de laisser un peu d'espace en haut (utile si vous avez une navbar fixe)
+            const positionY = listeRef.current.getBoundingClientRect().top + window.scrollY - 100;
+            
+            window.scrollTo({ top: positionY, behavior: 'smooth' });
+        }
     }, [pageActuelle]);
 
-    // --- ÉTAT : CHARGEMENT ---
     if (chargement) return (
         <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
             <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
@@ -61,7 +67,6 @@ export default function ListeSondages() {
         </div>
     );
 
-    // --- ÉTAT : VIDE ---
     if (sondages.length === 0) return (
         <div className="text-center py-20 animate-fade-in">
             <div className="text-6xl mb-4 text-gray-300 dark:text-gray-600">📭</div>
@@ -70,13 +75,11 @@ export default function ListeSondages() {
         </div>
     );
 
-    // --- LOGIQUE DE PAGINATION ---
     const indexDernierSondage = pageActuelle * sondagesParPage;
     const indexPremierSondage = indexDernierSondage - sondagesParPage;
     const sondagesAffiches = sondages.slice(indexPremierSondage, indexDernierSondage);
     const totalPages = Math.ceil(sondages.length / sondagesParPage);
 
-    // Fonction pour savoir si un sondage a été créé il y a moins de 3 jours
     const estNouveau = (dateCreation) => {
         const diffTemps = new Date() - new Date(dateCreation);
         const diffJours = diffTemps / (1000 * 3600 * 24);
@@ -84,9 +87,9 @@ export default function ListeSondages() {
     };
 
     return (
-        <div className="space-y-10 animate-fade-in">
+        // <-- NOUVEAU : On attache la référence (ref={listeRef}) au conteneur principal
+        <div ref={listeRef} className="space-y-10 animate-fade-in">
             
-            {/* LA GRILLE DES SONDAGES */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {sondagesAffiches.map(sondage => (
                     <div 
@@ -94,12 +97,10 @@ export default function ListeSondages() {
                         onClick={() => handleCardClick(sondage.id)}
                         className="group bg-white dark:bg-carteSombre rounded-2xl shadow-sm hover:shadow-2xl border border-gray-100 dark:border-gray-700 hover:border-[#3b82f6]/30 dark:hover:border-blue-500/50 transition-all duration-300 transform hover:-translate-y-1.5 cursor-pointer flex flex-col justify-between overflow-hidden"
                     >
-                        {/* Ligne décorative en haut de la carte */}
                         <div className="h-1.5 w-full bg-gradient-to-r from-blue-400 to-[#3b82f6] opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         
                         <div className="p-7">
                             <div className="flex justify-between items-start mb-4">
-                                {/* Badges */}
                                 <div className="flex gap-2">
                                     <span className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
                                         Public
@@ -123,7 +124,6 @@ export default function ListeSondages() {
                             </p>
                         </div>
 
-                        {/* Pied de carte avec métadonnées */}
                         <div className="px-7 py-5 bg-gray-50/50 dark:bg-fondSombre border-t border-gray-100 dark:border-gray-800 flex justify-between items-center text-xs font-medium text-gray-500 dark:text-gray-400">
                             <div className="flex items-center space-x-4">
                                 <span className="flex items-center gap-1.5" title="Nombre de questions">
@@ -150,40 +150,25 @@ export default function ListeSondages() {
                 ))}
             </div>
 
-            {/* LES CONTRÔLES DE PAGINATION */}
             {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-3 mt-14">
-                    <button 
-                        onClick={() => setPageActuelle(prev => Math.max(prev - 1, 1))}
-                        disabled={pageActuelle === 1}
-                        className="px-5 py-2.5 rounded-xl font-bold transition-colors bg-white dark:bg-carteSombre border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                    >
-                        Précédent
-                    </button>
-                    
-                    <div className="flex gap-2">
-                        {[...Array(totalPages)].map((_, i) => (
-                            <button
-                                key={i}
-                                onClick={() => setPageActuelle(i + 1)}
-                                className={`w-11 h-11 rounded-xl font-bold transition-all shadow-sm flex items-center justify-center ${
-                                    pageActuelle === i + 1 
-                                        ? 'bg-[#3b82f6] text-white ring-2 ring-blue-300 ring-offset-2 dark:ring-offset-gray-900' 
-                                        : 'bg-white dark:bg-carteSombre border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-                                }`}
-                            >
-                                {i + 1}
-                            </button>
-                        ))}
+                <div className="flex justify-center items-center mt-10 animate-fade-in">
+                    <div className="flex items-center gap-4 bg-gray-50 dark:bg-fondSombre p-2 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                        <button 
+                            onClick={() => setPageActuelle(prev => Math.max(prev - 1, 1))} 
+                            disabled={pageActuelle === 1} 
+                            className="px-5 py-2.5 rounded-lg font-bold bg-white dark:bg-carteSombre border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-50 transition-all shadow-sm"
+                        >
+                            Précédent
+                        </button>
+                        <span className="text-sm font-bold text-gray-500">Page {pageActuelle} / {totalPages}</span>
+                        <button 
+                            onClick={() => setPageActuelle(prev => Math.min(prev + 1, totalPages))} 
+                            disabled={pageActuelle === totalPages} 
+                            className="px-5 py-2.5 rounded-lg font-bold bg-white dark:bg-carteSombre border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-50 transition-all shadow-sm"
+                        >
+                            Suivant
+                        </button>
                     </div>
-
-                    <button 
-                        onClick={() => setPageActuelle(prev => Math.min(prev + 1, totalPages))}
-                        disabled={pageActuelle === totalPages}
-                        className="px-5 py-2.5 rounded-xl font-bold transition-colors bg-white dark:bg-carteSombre border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                    >
-                        Suivant
-                    </button>
                 </div>
             )}
         </div>

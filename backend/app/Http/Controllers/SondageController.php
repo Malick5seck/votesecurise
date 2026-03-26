@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\DB;
 
 class SondageController extends Controller
 {
-    // fonction pour afficher tous les sondages avec les restrictions avancées
     public function index()
     {
         $sondages = Sondage::with('questions')
@@ -24,10 +23,8 @@ class SondageController extends Controller
         return response()->json($sondages);
     }
 
-    // fonction pour créer un nouveau sondage avec les restrictions avancées
     public function store(Request $request)
     {
-        // Validation avec les nouveaux champs de restriction
         $validated = $request->validate([
             'titre' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -48,7 +45,6 @@ class SondageController extends Controller
         try {
             DB::beginTransaction();
 
-            // Création du sondage avec les restrictions
             $sondage = Sondage::create([
                 'user_id' => $request->user()->id,
                 'titre' => $validated['titre'],
@@ -90,7 +86,6 @@ class SondageController extends Controller
         }
     }
 
-    //fonction pour afficher les détails d'un sondage
     public function show(Request $request, $id)
     {
         $sondage = Sondage::with('questions.options')
@@ -111,13 +106,11 @@ class SondageController extends Controller
         return response()->json($sondage);
     }
 
-    // fonction pour afficher les résultats d'un sondage
     public function resultats(Request $request, $id)
     {
         $sondage = Sondage::with('questions.options')->findOrFail($id);
         $user = $request->user();
 
-        // Le Super Admin peut aussi voir les résultats
         if ($sondage->user_id !== $user->id && $user->role !== 'super_admin') {
             return response()->json([
                 'message' => 'Accès refusé (Confidentiel). Seul le créateur de ce sondage peut consulter les résultats.'
@@ -199,7 +192,6 @@ class SondageController extends Controller
         ]);
     }
 
-    // fonction pour supprimer un sondage par le créateur ou le Super Admin
     public function destroy(Request $request, $id)
     {
         $sondage = Sondage::findOrFail($id);
@@ -214,12 +206,13 @@ class SondageController extends Controller
         $titreSondage = $sondage->titre; 
 
         try {
-            //  Enregistrement de l'action d'audit si c'est le Super Admin
             if ($user->role === 'super_admin') {
+                // 🔥 On récupère le motif pour la suppression
+                $motif = $request->input('motif', 'Aucun motif fourni');
                 DB::table('admin_logs')->insert([
                     'user_id' => $user->id,
                     'action' => 'delete',
-                    'description' => "A supprimé le sondage : " . $titreSondage,
+                    'description' => "A supprimé le sondage : " . $titreSondage . " | Motif : " . $motif,
                     'created_at' => now(),
                     'updated_at' => now()
                 ]);
@@ -235,7 +228,6 @@ class SondageController extends Controller
         }
     }
 
-    //  FORCER LA CLÔTURE D'UN SONDAGE (Super Admin) ---
     public function cloturer(Request $request, $id)
     {
         if ($request->user()->role !== 'super_admin') {
@@ -245,11 +237,12 @@ class SondageController extends Controller
         $sondage = Sondage::findOrFail($id);
         $sondage->update(['date_fin' => now()]); 
 
-        //  Enregistrement de l'action d'audit
+        $motif = $request->input('motif', 'Aucun motif fourni');
+
         DB::table('admin_logs')->insert([
             'user_id' => $request->user()->id,
             'action' => 'cloture',
-            'description' => "A clôturé le sondage : " . $sondage->titre,
+            'description' => "A clôturé le sondage : " . $sondage->titre . " | Motif : " . $motif,
             'created_at' => now(),
             'updated_at' => now()
         ]);

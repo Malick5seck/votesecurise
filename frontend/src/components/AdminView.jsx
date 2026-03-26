@@ -3,9 +3,10 @@
 
 // export default function AdminView({ 
 //     user, 
-//     tousLesUtilisateurs, 
-//     tousLesSondages, 
-//     adminLogs, 
+//     // 🔥 SÉCURITÉ : On s'assure que si la donnée n'est pas là, c'est un tableau vide par défaut
+//     tousLesUtilisateurs = [], 
+//     tousLesSondages = [], 
+//     adminLogs = [], 
 //     adminOngletActif, 
 //     setAdminOngletActif, 
 //     setUtilisateurASupprimer, 
@@ -17,16 +18,14 @@
 // }) {
     
 //     const [pageChargee, setPageChargee] = useState(false);
-
 //     const [rechercheUtilisateur, setRechercheUtilisateur] = useState('');
 //     const [rechercheSondage, setRechercheSondage] = useState('');
-
 //     const [pageUtilisateurs, setPageUtilisateurs] = useState(1);
 //     const [pageSondages, setPageSondages] = useState(1);
 //     const itemsParPage = 10;
 
 //     useEffect(() => {
-//         setPageChargee(false); 
+//         // setPageChargee(false); 
 //         const timer = setTimeout(() => setPageChargee(true), 50); 
 //         return () => clearTimeout(timer);
 //     }, [adminOngletActif, donneesChargees]);
@@ -34,18 +33,23 @@
 //     useEffect(() => setPageUtilisateurs(1), [rechercheUtilisateur]);
 //     useEffect(() => setPageSondages(1), [rechercheSondage]);
 
-//     const totalVotes = tousLesSondages.reduce((sum, s) => sum + (s.votes_count || 0), 0);
-//     const sActifs = tousLesSondages.filter(s => !s.date_fin || new Date(s.date_fin) > new Date()).length;
-//     const sExpires = tousLesSondages.length - sActifs;
-//     const topS = [...tousLesSondages].sort((a, b) => (b.votes_count || 0) - (a.votes_count || 0)).slice(0, 5);
+//     // 🔥 SÉCURITÉ : On s'assure que les variables sont bien des tableaux avant de faire des calculs
+//     const safeSondages = Array.isArray(tousLesSondages) ? tousLesSondages : [];
+//     const safeUsers = Array.isArray(tousLesUtilisateurs) ? tousLesUtilisateurs : [];
+//     const safeLogs = Array.isArray(adminLogs) ? adminLogs : [];
 
-//     const utilisateursFiltres = tousLesUtilisateurs.filter(u => 
-//         u.name.toLowerCase().includes(rechercheUtilisateur.toLowerCase()) || 
-//         u.email.toLowerCase().includes(rechercheUtilisateur.toLowerCase())
+//     const totalVotes = safeSondages.reduce((sum, s) => sum + (s.votes_count || 0), 0);
+//     const sActifs = safeSondages.filter(s => !s.date_fin || new Date(s.date_fin) > new Date()).length;
+//     const sExpires = safeSondages.length - sActifs;
+//     const topS = [...safeSondages].sort((a, b) => (b.votes_count || 0) - (a.votes_count || 0)).slice(0, 5);
+
+//     const utilisateursFiltres = safeUsers.filter(u => 
+//         (u?.name || '').toLowerCase().includes(rechercheUtilisateur.toLowerCase()) || 
+//         (u?.email || '').toLowerCase().includes(rechercheUtilisateur.toLowerCase())
 //     );
 
-//     const sondagesFiltres = tousLesSondages.filter(s => 
-//         s.titre.toLowerCase().includes(rechercheSondage.toLowerCase())
+//     const sondagesFiltres = safeSondages.filter(s => 
+//         (s?.titre || '').toLowerCase().includes(rechercheSondage.toLowerCase())
 //     );
 
 //     const indexDernierUser = pageUtilisateurs * itemsParPage;
@@ -77,7 +81,11 @@
 //                 {['dashboard', 'utilisateurs', 'sondages', 'historique', 'profil'].map(onglet => (
 //                     <button 
 //                         key={onglet} 
-//                         onClick={() => setAdminOngletActif(onglet)} 
+//                         // onClick={() => setAdminOngletActif(onglet)}
+//                        onClick={() => {
+//     setPageChargee(false);
+//     setAdminOngletActif(onglet);
+// }}  
 //                         className={`px-6 py-3 rounded-lg font-bold text-sm transition-all whitespace-nowrap ${adminOngletActif === onglet ? 'bg-white dark:bg-carteSombre text-[#3b82f6] dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-700' : 'text-gray-500 hover:bg-white/50 dark:hover:bg-gray-700/50'}`}
 //                     >
 //                         {onglet === 'dashboard' ? '📊 Stats' : 
@@ -100,11 +108,11 @@
 //                         <div className="space-y-8">
 //                             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
 //                                 <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-start justify-between transform transition-all hover:scale-105 duration-300">
-//                                     <div><p className="text-sm font-bold uppercase text-gray-500 mb-1">Utilisateurs</p><p className="text-4xl font-extrabold text-gray-900 dark:text-white">{tousLesUtilisateurs.length}</p></div>
+//                                     <div><p className="text-sm font-bold uppercase text-gray-500 mb-1">Utilisateurs</p><p className="text-4xl font-extrabold text-gray-900 dark:text-white">{safeUsers.length}</p></div>
 //                                     <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-full text-[#3b82f6] dark:text-blue-400"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg></div>
 //                                 </div>
 //                                 <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-start justify-between transform transition-all hover:scale-105 duration-300">
-//                                     <div><p className="text-sm font-bold uppercase text-gray-500 mb-1">Sondages</p><p className="text-4xl font-extrabold text-gray-900 dark:text-white">{tousLesSondages.length}</p></div>
+//                                     <div><p className="text-sm font-bold uppercase text-gray-500 mb-1">Sondages</p><p className="text-4xl font-extrabold text-gray-900 dark:text-white">{safeSondages.length}</p></div>
 //                                     <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-full text-emerald-600 dark:text-emerald-400"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></div>
 //                                 </div>
 //                                 <div className="bg-white dark:bg-carteSombre p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-start justify-between transform transition-all hover:scale-105 duration-300">
@@ -121,7 +129,7 @@
 //                                 <h3 className="text-xl font-bold mb-6 dark:text-white">🏆 Sondages les plus populaires</h3>
 //                                 <div className="space-y-3">
 //                                     {topS.map((s, index) => {
-//                                         const auteur = tousLesUtilisateurs.find(u => u.id === s.user_id)?.name || 'Inconnu';
+//                                         const auteur = safeUsers.find(u => u.id === s.user_id)?.name || 'Inconnu';
 //                                         return (
 //                                             <div key={s.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-fondSombre rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
 //                                                 <div className="flex items-center gap-4">
@@ -153,15 +161,24 @@
 //                                     </thead>
 //                                     <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
 //                                         {utilisateursPaginees.map(u => {
-//                                             const nbSondagesUtilisateur = tousLesSondages.filter(s => s.user_id === u.id).length;
+//                                             const nbSondagesUtilisateur = safeSondages.filter(s => s.user_id === u.id).length;
 //                                             return (
 //                                                 <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors">
 //                                                     <td className="p-4"><p className="font-bold text-gray-900 dark:text-white">{u.name}</p><p className="text-sm text-gray-500">{u.email}</p></td>
 //                                                     <td className="p-4 text-gray-600 dark:text-gray-400">{new Date(u.created_at).toLocaleDateString()}</td>
 //                                                     <td className="p-4"><span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${u.role === 'super_admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>{u.role}</span></td>
-//                                                     <td className="p-4 text-center font-bold"><span className={nbSondagesUtilisateur > 20 ? "text-red-500" : "text-[#3b82f6]"}>{nbSondagesUtilisateur}</span></td>
+                                                    
+//                                                     <td className="p-4 text-center font-bold">
+//                                                         {u.role === 'super_admin' ? (
+//                                                             <span className="text-gray-400 font-normal">-</span>
+//                                                         ) : (
+//                                                             <span className={nbSondagesUtilisateur > 20 ? "text-red-500" : "text-[#3b82f6]"}>
+//                                                                 {nbSondagesUtilisateur}
+//                                                             </span>
+//                                                         )}
+//                                                     </td>
+
 //                                                     <td className="p-4 flex justify-end gap-2">
-//                                                         {/* 🔥 CONDITION AJOUTÉE ICI POUR CACHER LES ACTIONS SI C'EST UN SUPER ADMIN */}
 //                                                         {u.role !== 'super_admin' && (
 //                                                             <>
 //                                                                 <Link to={`/admin/utilisateurs/${u.id}`} className="text-[#3b82f6] hover:text-blue-800 font-bold text-sm bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5" title="Voir l'historique détaillé">
@@ -201,7 +218,7 @@
 //                                     <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
 //                                         {sondagesPagines.map(s => {
 //                                             const estExpire = s.date_fin && new Date(s.date_fin) < new Date();
-//                                             const auteur = tousLesUtilisateurs.find(u => u.id === s.user_id)?.name || 'Inconnu';
+//                                             const auteur = safeUsers.find(u => u.id === s.user_id)?.name || 'Inconnu';
 //                                             return (
 //                                                 <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors">
 //                                                     <td className="p-4"><p className="font-bold text-gray-900 dark:text-white">{s.titre}</p><p className="text-xs text-gray-500 mt-1">Par <span className="font-bold text-[#3b82f6]">{auteur}</span> • {s.est_anonyme ? 'Votes Anonymes' : 'Votes Publics'}</p></td>
@@ -231,12 +248,12 @@
 //                                 Journal d'Audit (Actions Récentes)
 //                             </h3>
 //                             <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-//                                 {(!adminLogs || adminLogs.length === 0) ? (
+//                                 {safeLogs.length === 0 ? (
 //                                     <div className="text-center py-10 bg-gray-50 dark:bg-fondSombre rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
 //                                         <p className="text-gray-500 dark:text-gray-400 italic">Aucune action administrative enregistrée pour le moment.</p>
 //                                     </div>
 //                                 ) : (
-//                                     adminLogs.map((log, index) => (
+//                                     safeLogs.map((log, index) => (
 //                                         <div key={index} className="flex items-center gap-5 bg-gray-50/50 dark:bg-fondSombre p-5 rounded-xl border border-gray-200 dark:border-gray-700 transition-all hover:shadow-md hover:-translate-y-0.5">
 //                                             <div className={`p-3 rounded-xl shadow-sm ${log.action === 'ban' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : log.action === 'cloture' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400'}`}>
 //                                                 {log.action === 'ban' ? '🔨' : log.action === 'cloture' ? '🔒' : '🗑️'}
@@ -285,6 +302,7 @@
 //         </div>
 //     );
 // }
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -311,11 +329,12 @@ export default function AdminView({
     const [pageSondages, setPageSondages] = useState(1);
     const itemsParPage = 10;
 
+    // 🔥 CORRECTION : C'est ici que l'animation doit être gérée à chaque changement d'onglet
     useEffect(() => {
-        setPageChargee(false); 
-        const timer = setTimeout(() => setPageChargee(true), 50); 
-        return () => clearTimeout(timer);
-    }, [adminOngletActif, donneesChargees]);
+        setPageChargee(false); // On cache le contenu
+        const timer = setTimeout(() => setPageChargee(true), 50); // On le fait réapparaître 50ms plus tard
+        return () => clearTimeout(timer); // Nettoyage propre
+    }, [adminOngletActif, donneesChargees]); // S'exécute à chaque clic sur un onglet
 
     useEffect(() => setPageUtilisateurs(1), [rechercheUtilisateur]);
     useEffect(() => setPageSondages(1), [rechercheSondage]);
@@ -368,7 +387,7 @@ export default function AdminView({
                 {['dashboard', 'utilisateurs', 'sondages', 'historique', 'profil'].map(onglet => (
                     <button 
                         key={onglet} 
-                        onClick={() => setAdminOngletActif(onglet)} 
+                        onClick={() => setAdminOngletActif(onglet)} // 🔥 Le changement déclenchera le useEffect plus haut
                         className={`px-6 py-3 rounded-lg font-bold text-sm transition-all whitespace-nowrap ${adminOngletActif === onglet ? 'bg-white dark:bg-carteSombre text-[#3b82f6] dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-700' : 'text-gray-500 hover:bg-white/50 dark:hover:bg-gray-700/50'}`}
                     >
                         {onglet === 'dashboard' ? '📊 Stats' : 

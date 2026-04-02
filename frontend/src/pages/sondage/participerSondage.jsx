@@ -21,15 +21,13 @@ export default function ParticiperSondage() {
     const [reponses, setReponses] = useState({});
     const [voterAnonymement, setVoterAnonymement] = useState(false);
 
-    // 2. Détection de l'utilisateur et du mode Lecture Seule
+    // 2. Détection de l'utilisateur (On retire isSuperAdmin d'ici pour la sécurité)
     const userString = localStorage.getItem('user');
     let currentUser = null;
-    let isSuperAdmin = false;
     
     if (userString) {
         try {
             currentUser = JSON.parse(userString);
-            isSuperAdmin = currentUser?.role === 'super_admin';
         } catch (e) {
             console.error("Erreur de parsing user", e);
         }
@@ -38,10 +36,11 @@ export default function ParticiperSondage() {
     const queryParams = new URLSearchParams(location.search);
     const isModeConsultation = queryParams.get('mode') === 'consultation';
     
-    // 🔥 On active le mode lecture seule si Admin OU si URL ?mode=consultation
-    const isReadOnly = isSuperAdmin || isModeConsultation;
+    // 🔒 CORRECTION POINT 4 : On ne fait plus confiance au LocalStorage pour débloquer les écrans.
+    // Le mode consultation via l'URL (qui ne permet pas de voter de toute façon) suffit pour la lecture seule.
+    const isReadOnly = isModeConsultation;
 
-    // 3. Déclaration de l'expiration (DÉCLARÉE EN HAUT = 0 ERREUR)
+    // 3. Déclaration de l'expiration
     const estExpire = sondage?.date_fin ? new Date(sondage.date_fin) < new Date() : false;
 
     // 4. Chargement des données
@@ -54,7 +53,6 @@ export default function ParticiperSondage() {
                 
                 let utilisateurAutorise = true;
 
-                // L'admin ou le mode consultation passe toutes les restrictions
                 if (isReadOnly) {
                     utilisateurAutorise = true;
                 } else if (donneesSondage.domaine_restreint || (donneesSondage.emails_autorises && donneesSondage.emails_autorises.length > 0)) {
@@ -107,7 +105,7 @@ export default function ParticiperSondage() {
         fetchSondage();
     }, [id, isReadOnly]); 
 
-    // 5. Gestion des inputs (Bloqués si Lecture Seule)
+    // 5. Gestion des inputs
     const handleTextChange = (questionId, valeur) => {
         if (isReadOnly) return;
         setReponses(prev => ({ ...prev, [questionId]: { valeur_texte: valeur } }));
@@ -122,7 +120,10 @@ export default function ParticiperSondage() {
         if (isReadOnly) return;
         setReponses(prev => {
             const reponseActuelle = prev[questionId] || { options_multiples: [] };
-            let nouvellesOptions = reponseActuelle.options_multiples || [];
+            
+            // 🧹 CORRECTION POINT 6 (Clean Code) : On clone proprement le tableau existant
+            // avant de le modifier, pour ne pas muter l'état React directement.
+            let nouvellesOptions = [...(reponseActuelle.options_multiples || [])];
             
             if (estCoche) {
                 nouvellesOptions.push(optionId);
@@ -196,7 +197,6 @@ export default function ParticiperSondage() {
         </div>
     );
 
-    // Les blocages "Expiré" et "Déjà voté" sont ignorés si on est en mode Lecture Seule
     if (estExpire && !isReadOnly) return (
         <div className="w-full max-w-2xl mx-auto py-12 sm:py-20 px-4 text-center transition-colors duration-300 animate-fade-in overflow-hidden">
             <div className="bg-red-50 dark:bg-red-900/20 p-6 sm:p-10 rounded-2xl shadow-lg border border-red-200 dark:border-red-800 w-full">

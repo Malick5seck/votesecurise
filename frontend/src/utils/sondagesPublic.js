@@ -1,6 +1,3 @@
-/**
- * Sondages publics « en cours » : démarré (si date_debut) et non expiré (si date_fin).
- */
 export function sondagePublicEnCours(sondage, maintenant = new Date()) {
     if (sondage.est_prive) return false;
     const t = maintenant.getTime();

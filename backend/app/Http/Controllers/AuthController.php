@@ -104,7 +104,9 @@ class AuthController extends Controller
 
         Log::info("Demande de réinitialisation de mot de passe initiée pour : " . $user->email);
 
-        $resetLink = env('FRONTEND_URL', 'http://localhost:5173') . '/reset-password?token=' . $token . '&email=' . urlencode($user->email);
+        // 🔒 CORRECTION POINT 5 : On utilise config() au lieu de env() pour éviter les bugs en production
+        $frontendUrl = config('app.frontend_url', 'http://localhost:5173');
+        $resetLink = $frontendUrl . '/reset-password?token=' . $token . '&email=' . urlencode($user->email);
 
         try {
             Mail::send([], [], function ($message) use ($user, $resetLink) {

@@ -15,38 +15,25 @@ class SondageController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. On récupère l'utilisateur connecté via Sanctum (sans bloquer s'il est visiteur)
         $user = auth('sanctum')->user();
         
-        // ⚡ OPTIMISATION DES PERFORMANCES : 
-        // - On retire ->with('questions') pour ne pas envoyer le contenu complet de chaque sondage dans la liste.
-        // - On utilise ->select(...) pour ne charger que les données strictement nécessaires à l'affichage des cartes.
         $query = Sondage::select('id', 'user_id', 'titre', 'description', 'slug', 'est_anonyme', 'est_prive', 'date_debut', 'date_fin', 'created_at')
                         ->withCount('votes') 
                         ->latest();
 
-        // 3. LE FILTRAGE INTELLIGENT
         if ($user && $user->role === 'super_admin') {
-            // L'ADMIN VOIT TOUT : Il récupère absolument tous les sondages
             $sondages = $query->get();
         } elseif ($user) {
-            // L'UTILISATEUR VOIT : Les sondages publics (pour l'explorateur) + SES PROPRES sondages
             $sondages = $query->where(function($q) use ($user) {
-                // "Donne-moi ceux qui ne sont pas privés... OU ceux dont je suis l'auteur."
                 $q->where('est_prive', false)
                   ->orWhere('user_id', $user->id);
             })->get();
         } else {
-            // LE VISITEUR VOIT : Uniquement les sondages publics
             $sondages = $query->where('est_prive', false)->get();
         }
                            
         return response()->json($sondages);
     }
-
-    // =========================================================================
-    // TOUT CE QUI SUIT EST INTACT (CRÉATION, PARTICIPATION, RÉSULTATS)
-    // =========================================================================
 
     public function store(Request $request)
     {
@@ -59,6 +46,8 @@ class SondageController extends Controller
             'date_fin' => 'nullable|date|after_or_equal:date_debut',
             'domaine_restreint' => 'nullable|string',
             'emails_autorises' => 'nullable|array',   
+            // 🔒 OPTIMISATION : On s'assure que si on a un tableau d'emails, ce sont bien des emails valides
+            'emails_autorises.*' => 'email', 
             'message_remerciement' => 'nullable|string',
             'questions' => 'required|array|min:1',
             'questions.*.titre' => 'required|string',
@@ -153,6 +142,23 @@ class SondageController extends Controller
         $totalVotes = $sondage->votes()->count();
         $statistiques = [];
 
+        // 🚀 OPTIMISATION POINT 2 : Requêtes groupées pour supprimer le problème N+1
+        $questionIds = $sondage->questions->pluck('id');
+
+        // 1. On compte les votes de TOUTES les options du sondage d'un seul coup
+        $reponsesCount = Reponse::select('option_id', DB::raw('count(*) as total'))
+            ->whereIn('question_id', $questionIds)
+            ->whereNotNull('option_id')
+            ->groupBy('option_id')
+            ->pluck('total', 'option_id');
+
+        // 2. On calcule les moyennes de TOUTES les questions 'rating/slider' d'un seul coup
+        $ratingAverages = Reponse::select('question_id', DB::raw('avg(valeur_texte) as moyenne'))
+            ->whereIn('question_id', $questionIds)
+            ->whereNotNull('valeur_texte')
+            ->groupBy('question_id')
+            ->pluck('moyenne', 'question_id');
+
         foreach ($sondage->questions as $question) {
             $statsQuestion = [
                 'id' => $question->id,
@@ -163,9 +169,8 @@ class SondageController extends Controller
             if (in_array($question->type, ['qcm', 'checkbox', 'likert', 'boolean', 'ranking', 'matrix'])) {
                 $optionsStats = [];
                 foreach ($question->options as $option) {
-                    $count = Reponse::where('question_id', $question->id)
-                                                ->where('option_id', $option->id)
-                                                ->count();
+                    // 🚀 On lit directement depuis la mémoire (0 requête SQL ici !)
+                    $count = $reponsesCount[$option->id] ?? 0;
                     
                     $optionsStats[] = [
                         'id' => $option->id,
@@ -177,6 +182,7 @@ class SondageController extends Controller
                 $statsQuestion['options'] = $optionsStats;
             } 
             elseif (in_array($question->type, ['text', 'number', 'date'])) {
+                // Pour les 10 dernières réponses textes, la requête est conservée ici car le "take(10)" est difficile à grouper globalement
                 $statsQuestion['reponses_textes'] = Reponse::where('question_id', $question->id)
                                                 ->whereNotNull('valeur_texte')
                                                 ->latest()
@@ -184,7 +190,8 @@ class SondageController extends Controller
                                                 ->pluck('valeur_texte');
             } 
             elseif (in_array($question->type, ['rating', 'slider'])) {
-                $moyenne = Reponse::where('question_id', $question->id)->avg('valeur_texte');
+                // 🚀 On lit la moyenne depuis la mémoire (0 requête SQL ici !)
+                $moyenne = $ratingAverages[$question->id] ?? 0;
                 $statsQuestion['moyenne'] = $moyenne ? round($moyenne, 1) : 0;
             }
 

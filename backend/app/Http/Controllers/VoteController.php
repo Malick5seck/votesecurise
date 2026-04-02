@@ -8,6 +8,8 @@ use App\Models\Vote;
 use App\Models\Reponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule; // 🔒 CORRECTION POINT 1 : Import obligatoire pour utiliser Rule::exists
+
 class VoteController extends Controller
 {
     public function voter(Request $request, $sondage_id)
@@ -47,10 +49,16 @@ class VoteController extends Controller
             }
         }
 
-        //assurer que l'utilisateur ne vote qu'une seule fois pour un sondage 
+        // 🔒 CORRECTION POINT 3 : Bloquer le spam pour les visiteurs anonymes via leur adresse IP
         $dejaVote = false;
         if ($user) {
             $dejaVote = Vote::where('user_id', $user->id)
+                            ->where('sondage_id', $sondage->id)
+                            ->exists();
+        } else {
+            // Si c'est un visiteur, on vérifie s'il n'a pas déjà voté avec cette IP
+            $dejaVote = Vote::where('adresse_ip', $request->ip())
+                            ->whereNull('user_id')
                             ->where('sondage_id', $sondage->id)
                             ->exists();
         }
@@ -59,9 +67,13 @@ class VoteController extends Controller
             return response()->json(['message' => 'Vous avez déjà voté pour ce sondage.'], 403);
         }
 
+        // 🔒 CORRECTION POINT 1 (IDOR) : On empêche l'injection de questions d'autres sondages
         $validated = $request->validate([
             'reponses' => 'required|array',
-            'reponses.*.question_id' => 'required|exists:questions,id',
+            'reponses.*.question_id' => [
+                'required',
+                Rule::exists('questions', 'id')->where('sondage_id', $sondage->id) // La question DOIT appartenir à ce sondage
+            ],
             'reponses.*.option_id' => 'nullable|exists:options,id',
             'reponses.*.valeur_texte' => 'nullable|string',
             'est_anonyme' => 'boolean' 

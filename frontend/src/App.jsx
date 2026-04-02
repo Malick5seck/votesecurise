@@ -5,16 +5,18 @@ import Footer from './components/layout/Footer';
 
 import Accueil from './pages/accueil';
 
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
-import ForgotPassword from './pages/auth/ForgotPassword';
-import ResetPassword from './pages/auth/ResetPassword';
+// 🔒 CORRECTION POINT 3 : Mise en minuscules des chemins pour correspondre aux vrais fichiers
+import Login from './pages/auth/login';
+import Register from './pages/auth/register';
+import ForgotPassword from './pages/auth/forgotPassword';
+import ResetPassword from './pages/auth/resetPassword';
 
 import Dashboard from './pages/dashboard/dashboard';
 import HistoriqueUtilisateur from './pages/dashboard/HistoriqueUtilisateur';
 
-import ParticiperSondage from './pages/sondage/ParticiperSondage';
-import ResultatsSondage from './pages/sondage/ResultatsSondage';
+// 🔒 CORRECTION POINT 3 : Mise en minuscules des chemins
+import ParticiperSondage from './pages/sondage/participerSondage';
+import ResultatsSondage from './pages/sondage/resultatsSondage';
 
 function App() {
   return (

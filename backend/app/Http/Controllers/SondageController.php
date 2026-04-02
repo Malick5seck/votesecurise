@@ -13,12 +13,31 @@ use Illuminate\Support\Facades\DB;
 
 class SondageController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $sondages = Sondage::with('questions')
-                           ->withCount('votes') 
-                           ->latest()
-                           ->get();
+        // 1. On récupère l'utilisateur connecté via Sanctum (sans bloquer s'il est visiteur)
+        $user = auth('sanctum')->user();
+        
+        // 2. Base de la requête (On précharge les questions et on compte les votes)
+        $query = Sondage::with('questions')
+                        ->withCount('votes') 
+                        ->latest();
+
+        // 3. LE FILTRAGE INTELLIGENT
+        if ($user && $user->role === 'super_admin') {
+            // L'ADMIN VOIT TOUT : Il récupère absolument tous les sondages
+            $sondages = $query->get();
+        } elseif ($user) {
+            // L'UTILISATEUR VOIT : Les sondages publics (pour l'explorateur) + SES PROPRES sondages
+            $sondages = $query->where(function($q) use ($user) {
+                // "Donne-moi ceux qui ne sont pas privés... OU ceux dont je suis l'auteur."
+                $q->where('est_prive', false)
+                  ->orWhere('user_id', $user->id);
+            })->get();
+        } else {
+            // LE VISITEUR VOIT : Uniquement les sondages publics
+            $sondages = $query->where('est_prive', false)->get();
+        }
                            
         return response()->json($sondages);
     }
@@ -215,7 +234,6 @@ class SondageController extends Controller
 
         try {
             if ($user->role === 'super_admin') {
-                // 🔥 On récupère le motif pour la suppression
                 $motif = $request->input('motif', 'Aucun motif fourni');
                 DB::table('admin_logs')->insert([
                     'user_id' => $user->id,

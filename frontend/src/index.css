@@ -3,6 +3,34 @@
 @tailwind utilities;
 
 @layer base {
+
+  /* 🔥 GESTION GLOBALE DE L'ÉCHELLE (ZOOM) 🔥 */
+  
+  /* 1. Sur Mobile et Tablette : Taille standard (100% = 16px) 
+     Obligatoire pour garder des textes lisibles et des boutons faciles à toucher */
+  html {
+    font-size: 16px; 
+  }
+
+  /* 2. Sur petits ordinateurs / Tablettes mode paysage (>= 1024px) : 
+     On réduit un peu (équivalent zoom ~87%) */
+  @media (min-width: 1024px) {
+    html {
+      font-size: 14px; 
+    }
+  }
+
+  /* 3. Sur écrans d'ordinateur standards et larges (>= 1280px) : 
+     On applique ton réglage idéal (équivalent zoom ~81%)
+     Calcul : 16px * 0.81 = ~13px. Tous les "rem" de Tailwind vont s'ajuster sur cette base ! */
+  @media (min-width: 1280px) {
+    html {
+      font-size: 13px; 
+    }
+  }
+
+  /* ----------------------------------------- */
+
   /* Style par défaut (Mode Clair) */
   body {
     @apply bg-fond text-gray-900 transition-colors duration-300;
@@ -20,6 +48,7 @@
     @apply w-full h-px bg-gray-300 dark:bg-gray-700 my-8;
   }
 }
+
 /* --- REGLES D'IMPRESSION (EXPORT PDF) --- */
 @media print {
     /* 1. On cache définitivement le header (Navbar) et le footer */

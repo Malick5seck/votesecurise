@@ -33,9 +33,9 @@
 
 //     const getLinkStyle = (path) => {
 //         const isActive = location.pathname === path; 
-//         return `px-4 py-2 rounded-lg font-medium transition-colors ${
+//         return `px-3 py-2 rounded-lg font-medium text-sm lg:text-base whitespace-nowrap transition-colors ${
 //             isActive 
-//                 ? 'bg-white text-primaire dark:bg-gray-800 dark:text-white shadow-sm' 
+//                 ? 'bg-white text-[#3b82f6] dark:bg-gray-800 dark:text-white shadow-sm' 
 //                 : 'text-white hover:bg-white/20 dark:hover:bg-gray-700'
 //         }`;
 //     };
@@ -44,32 +44,36 @@
 //         const isActive = location.pathname === path; 
 //         return `block w-full text-left px-4 py-3 rounded-lg font-bold transition-colors ${
 //             isActive 
-//                 ? 'bg-white text-primaire dark:bg-gray-800 dark:text-white shadow-sm' 
+//                 ? 'bg-white text-[#3b82f6] dark:bg-gray-800 dark:text-white shadow-sm' 
 //                 : 'text-white hover:bg-white/20 dark:hover:bg-gray-700'
 //         }`;
 //     };
 
 //     return (
-//         <header className="sticky top-0 z-50 bg-primaire dark:bg-carteSombre text-white p-4 shadow-md transition-colors duration-300 print:hidden">
-//             <div className="container mx-auto">
-//                 {/* LIGNE PRINCIPALE (Toujours visible en haut) */}
-//                 <div className="flex justify-between items-center">
+//         <header className="sticky top-0 z-50 bg-[#3b82f6] dark:bg-gray-900 text-white shadow-md transition-colors duration-300 print:hidden w-full">
+            
+//             <div className="w-full px-4 sm:px-6 lg:px-8">
+                
+//                 <div className="flex justify-between items-center h-16 w-full">
                     
-//                     <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-2xl tracking-wide flex items-center gap-2">
-//                         VotePulse
-//                     </Link>
+//                     {/* TITRE ALIGNÉ À GAUCHE */}
+//                     <div className="flex-shrink-0 flex items-center">
+//                         <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-xl sm:text-2xl tracking-wide flex items-center gap-2 whitespace-nowrap">
+//                             VotePulse
+//                         </Link>
+//                     </div>
                     
-//                     <div className="flex items-center space-x-2 md:space-x-4">
+//                     {/* NAVIGATION ET ACTIONS ALIGNÉES À DROITE */}
+//                     <div className="flex items-center gap-4 lg:gap-6">
                         
-//                         {/* MENU DESKTOP (Caché sur mobile via 'hidden md:flex') */}
 //                         {estConnecte ? (
-//                             <nav className="hidden md:flex items-center space-x-1 md:space-x-2 mr-2">
+//                             <nav className="hidden lg:flex items-center gap-2 lg:gap-4">
 //                                 {isSuperAdmin ? (
 //                                     <Link to="/admin" className={getLinkStyle('/admin')}>Dashboard</Link>
 //                                 ) : (
 //                                     <>
 //                                         <Link to="/" className={getLinkStyle('/')}>Accueil</Link>
-//                                         <Link to="/tous-les-sondages" className={getLinkStyle('/tous-les-sondages')}> Les sondages</Link>
+//                                         <Link to="/tous-les-sondages" className={getLinkStyle('/tous-les-sondages')}>Les sondages</Link>
 //                                         <Link to="/mes-sondages" className={getLinkStyle('/mes-sondages')}>Mes sondages</Link>
 //                                         <Link to="/creer" className={getLinkStyle('/creer')}>Créer</Link>
 //                                         <Link to="/profil" className={getLinkStyle('/profil')}>Profil</Link>
@@ -77,31 +81,26 @@
 //                                 )}
 //                             </nav>
 //                         ) : (
-//                             // Lien "Se connecter" visible sur tous les écrans si déconnecté
-//                             <Link to="/login" className="hover:text-secondaire transition-colors font-medium mr-2 md:mr-4">Se connecter</Link>
+//                             <Link to="/login" className="hover:text-blue-200 transition-colors font-medium text-sm sm:text-base whitespace-nowrap">Se connecter</Link>
 //                         )}
 
-//                         {/* BOUTONS GLOBAUX (Thème et Hamburger) */}
-//                         <div className="flex items-center gap-2">
-//                             {/* Bouton Mode Sombre */}
+//                         <div className="flex items-center gap-3">
+                            
 //                             <button 
 //                                 onClick={() => setIsDarkMode(!isDarkMode)} 
-//                                 title={isDarkMode ? "Passer au mode clair" : "Passer au mode sombre"}
-//                                 className="p-2 bg-secondaire hover:bg-emerald-600 text-white rounded-full shadow transition-transform transform hover:scale-110 focus:outline-none"
+//                                 className="p-2 bg-blue-600 hover:bg-blue-700 dark:bg-gray-800 dark:hover:bg-gray-700 text-white rounded-full shadow transition-transform transform hover:scale-110 focus:outline-none flex-shrink-0"
 //                             >
 //                                 {isDarkMode ? (
-//                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 md:w-6 md:h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" /></svg>
+//                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" /></svg>
 //                                 ) : (
-//                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 md:w-6 md:h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" /></svg>
+//                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" /></svg>
 //                                 )}
 //                             </button>
                              
-//                             {/* Bouton Déconnexion Desktop (Caché sur mobile) */}
 //                             {estConnecte && (
 //                                 <button 
 //                                     onClick={handleLogout} 
-//                                     title="Se déconnecter"
-//                                     className="hidden md:flex items-center gap-2 px-4 py-2 text-white bg-red-500/20 hover:bg-red-500 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-red-400 font-medium"
+//                                     className="hidden lg:flex items-center gap-2 px-4 py-2 text-white bg-red-500/80 hover:bg-red-600 rounded-lg transition-all focus:outline-none font-medium flex-shrink-0 whitespace-nowrap"
 //                                 >
 //                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
 //                                         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
@@ -110,20 +109,17 @@
 //                                 </button>
 //                             )}
 
-//                             {/* 🔥 NOUVEAU : Bouton Hamburger pour Mobile (visible si connecté et écran < md) */}
 //                             {estConnecte && (
 //                                 <button 
 //                                     onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-//                                     className="md:hidden p-2 text-white hover:bg-white/20 rounded-lg transition-colors focus:outline-none ml-1"
+//                                     className="lg:hidden p-2 text-white hover:bg-white/20 rounded-lg transition-colors focus:outline-none flex-shrink-0"
 //                                     aria-label="Menu principal"
 //                                 >
 //                                     {isMobileMenuOpen ? (
-//                                         // Icône 'X' quand le menu est ouvert
 //                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
 //                                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
 //                                         </svg>
 //                                     ) : (
-//                                         // Icône Hamburger (3 lignes) quand le menu est fermé
 //                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
 //                                             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
 //                                         </svg>
@@ -134,36 +130,31 @@
 //                     </div>
 //                 </div>
 
-//                 {/* 🔥 NOUVEAU : ZONE DU MENU MOBILE DÉROULANT */}
-//                 {/* L'animation utilise max-h pour glisser doucement vers le bas */}
-//                 {estConnecte && (
-//                     <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'max-h-[32rem] opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
-//                         <nav className="flex flex-col space-y-2 pb-4 pt-2 border-t border-white/10 dark:border-gray-700/50">
-//                             {isSuperAdmin ? (
-//                                 <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)} className={getMobileLinkStyle('/admin')}>Dashboard</Link>
-//                             ) : (
-//                                 <>
-//                                     <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className={getMobileLinkStyle('/')}>Accueil</Link>
-//                                     <Link to="/tous-les-sondages" onClick={() => setIsMobileMenuOpen(false)} className={getMobileLinkStyle('/tous-les-sondages')}>Tous les sondages</Link>
-//                                     <Link to="/mes-sondages" onClick={() => setIsMobileMenuOpen(false)} className={getMobileLinkStyle('/mes-sondages')}>Mes sondages</Link>
-//                                     <Link to="/creer" onClick={() => setIsMobileMenuOpen(false)} className={getMobileLinkStyle('/creer')}>Créer</Link>
-//                                     <Link to="/profil" onClick={() => setIsMobileMenuOpen(false)} className={getMobileLinkStyle('/profil')}>Profil</Link>
-//                                 </>
-//                             )}
-                            
-//                             {/* Bouton de déconnexion spécifique au menu mobile */}
-//                             <button 
-//                                 onClick={handleLogout} 
-//                                 className="flex items-center gap-2 w-full text-left px-4 py-3 mt-2 text-white bg-red-500/20 hover:bg-red-500 rounded-lg transition-colors font-bold"
-//                             >
-//                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
-//                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-//                                 </svg>
-//                                 Se déconnecter
-//                             </button>
-//                         </nav>
-//                     </div>
-//                 )}
+//                 <div className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'max-h-[32rem] opacity-100 pb-4' : 'max-h-0 opacity-0'}`}>
+//                     <nav className="flex flex-col space-y-2 pt-3 border-t border-blue-400 dark:border-gray-700 mt-2">
+//                         {isSuperAdmin ? (
+//                             <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)} className={getMobileLinkStyle('/admin')}>Dashboard</Link>
+//                         ) : (
+//                             <>
+//                                 <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className={getMobileLinkStyle('/')}>Accueil</Link>
+//                                 <Link to="/tous-les-sondages" onClick={() => setIsMobileMenuOpen(false)} className={getMobileLinkStyle('/tous-les-sondages')}>Tous les sondages</Link>
+//                                 <Link to="/mes-sondages" onClick={() => setIsMobileMenuOpen(false)} className={getMobileLinkStyle('/mes-sondages')}>Mes sondages</Link>
+//                                 <Link to="/creer" onClick={() => setIsMobileMenuOpen(false)} className={getMobileLinkStyle('/creer')}>Créer</Link>
+//                                 <Link to="/profil" onClick={() => setIsMobileMenuOpen(false)} className={getMobileLinkStyle('/profil')}>Profil</Link>
+//                             </>
+//                         )}
+                        
+//                         <button 
+//                             onClick={handleLogout} 
+//                             className="flex items-center gap-2 w-full text-left px-4 py-3 mt-2 text-white bg-red-500/80 hover:bg-red-600 rounded-lg transition-colors font-bold"
+//                         >
+//                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+//                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+//                             </svg>
+//                             Se déconnecter
+//                         </button>
+//                     </nav>
+//                 </div>
 
 //             </div>
 //         </header>
@@ -222,11 +213,7 @@ export default function Navbar() {
 
     return (
         <header className="sticky top-0 z-50 bg-[#3b82f6] dark:bg-gray-900 text-white shadow-md transition-colors duration-300 print:hidden w-full">
-            {/* CORRECTION :
-               1. Suppression de 'max-w-7xl mx-auto' (qui bloquait la largeur au centre).
-               2. Utilisation de 'w-full' pour occuper toute la largeur.
-               3. Padding réduit (px-4 sur mobile, px-6 sur tablette, px-8 sur desktop).
-            */}
+            
             <div className="w-full px-4 sm:px-6 lg:px-8">
                 
                 <div className="flex justify-between items-center h-16 w-full">
@@ -256,11 +243,23 @@ export default function Navbar() {
                                 )}
                             </nav>
                         ) : (
-                            <Link to="/login" className="hover:text-blue-200 transition-colors font-medium text-sm sm:text-base whitespace-nowrap">Se connecter</Link>
+                            // ==========================================
+                            // 🌟 NOUVEAU BOUTON "SE CONNECTER" AMÉLIORÉ
+                            // ==========================================
+                            <Link 
+                                to="/login" 
+                                className="flex items-center gap-2 px-5 py-2 bg-white text-[#3b82f6] hover:bg-blue-50 dark:bg-gray-800 dark:text-blue-400 dark:hover:bg-gray-700 font-bold rounded-xl transition-all shadow-sm transform hover:-translate-y-0.5 whitespace-nowrap"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H2.25" />
+                                </svg>
+                                <span>Se connecter</span>
+                            </Link>
                         )}
 
                         <div className="flex items-center gap-3">
                             
+                            {/* BOUTON MODE SOMBRE */}
                             <button 
                                 onClick={() => setIsDarkMode(!isDarkMode)} 
                                 className="p-2 bg-blue-600 hover:bg-blue-700 dark:bg-gray-800 dark:hover:bg-gray-700 text-white rounded-full shadow transition-transform transform hover:scale-110 focus:outline-none flex-shrink-0"
@@ -275,7 +274,7 @@ export default function Navbar() {
                             {estConnecte && (
                                 <button 
                                     onClick={handleLogout} 
-                                    className="hidden lg:flex items-center gap-2 px-4 py-2 text-white bg-red-500/80 hover:bg-red-600 rounded-lg transition-all focus:outline-none font-medium flex-shrink-0 whitespace-nowrap"
+                                    className="hidden lg:flex items-center gap-2 px-4 py-2 text-white bg-red-500/80 hover:bg-red-600 rounded-lg transition-all focus:outline-none hover:-translate-y-0.5 font-medium flex-shrink-0 whitespace-nowrap"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />

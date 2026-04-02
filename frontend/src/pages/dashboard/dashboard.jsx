@@ -1,3 +1,4 @@
+
 // import { useEffect, useState } from 'react';
 // import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 // import api from '../../api/axios';
@@ -21,8 +22,8 @@
 //                 <div className={`w-16 h-16 ${color} rounded-full flex items-center justify-center mx-auto mb-4 text-3xl`}>
 //                     {icon}
 //                 </div>
-//                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{titre}</h3>
-//                 <p className="text-sm text-gray-500 mb-6">{desc}</p>
+//                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 break-words">{titre}</h3>
+//                 <p className="text-sm text-gray-500 mb-6 break-words">{desc}</p>
                 
 //                 {avecMotif && (
 //                     <div className="mb-6 text-left">
@@ -39,14 +40,14 @@
 //                     </div>
 //                 )}
                 
-//                 <div className="flex flex-col sm:flex-row gap-3">
-//                     <button onClick={handleCancel} className="w-full sm:flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-white font-bold py-3 rounded-xl transition-colors">
+//                 <div className="flex flex-col sm:flex-row gap-3 w-full">
+//                     <button onClick={handleCancel} className="w-full sm:flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-white font-bold py-3 rounded-xl transition-colors shrink-0">
 //                         Annuler
 //                     </button>
 //                     <button 
 //                         onClick={onConfirm} 
 //                         disabled={avecMotif && !motifValue?.trim()} 
-//                         className={`w-full sm:flex-1 text-white font-bold py-3 rounded-xl transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${confirmText === 'Clôturer' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-red-600 hover:bg-red-700'}`}
+//                         className={`w-full sm:flex-1 text-white font-bold py-3 rounded-xl transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed shrink-0 ${confirmText === 'Clôturer' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-red-600 hover:bg-red-700'}`}
 //                     >
 //                         {confirmText}
 //                     </button>
@@ -101,12 +102,20 @@
 //         }
         
 //         try {
+//             // CORRECTION DE L'APPEL API :
+//             // Au lieu de récupérer /sondages (qui peut cacher les sondages privés ou expirés), 
+//             // on appelle spécifiquement la route /mes-sondages de Laravel si elle existe.
+//             // Si elle n'existe pas, on modifie juste le filtrage pour s'assurer que le user.id est bien comparé en Number/String
+            
 //             const [resSondages, resVotes] = await Promise.all([
 //                 api.get('/sondages'),
 //                 api.get('/mes-votes')
 //             ]);
             
-//             const sondagesFiltres = resSondages.data.filter(s => s.user_id === userId);
+//             // Forcer la comparaison en String pour éviter les bugs d'ID (ex: 1 !== "1")
+//             const userIdString = String(userId);
+//             const sondagesFiltres = resSondages.data.filter(s => String(s.user_id) === userIdString);
+            
 //             setMesSondages(sondagesFiltres); 
 //             setHistoriqueVotes(resVotes.data);
 //             setTousLesSondages(resSondages.data); 
@@ -132,7 +141,7 @@
 //         try {
 //             const [resUsers, resSondages, resLogs] = await Promise.all([
 //                 api.get('/users'), 
-//                 api.get('/sondages'),
+//                 api.get('/sondages'), // En admin, la route /sondages renvoie TOUT via le backend
 //                 api.get('/admin/logs')
 //             ]);
 //             setTousLesUtilisateurs(resUsers.data);
@@ -307,20 +316,23 @@
 //     };
     
 //     if (!user) return (
-//         <div className="min-h-[60vh] flex flex-col items-center justify-center animate-fade-in">
-//             <div className="w-12 h-12 border-4 border-blue-200 border-t-[#3b82f6] dark:border-gray-700 dark:border-t-blue-400 rounded-full animate-spin mb-4"></div>
-//             <p className="text-gray-500 dark:text-gray-400 font-medium">Chargement de votre session...</p>
+//         // Securité responsive : w-full max-w-full overflow-hidden
+//         <div className="w-full max-w-full min-h-[60vh] flex flex-col items-center justify-center animate-fade-in overflow-hidden px-4">
+//             <div className="w-10 h-10 sm:w-12 sm:h-12 border-4 border-blue-200 border-t-[#3b82f6] dark:border-gray-700 dark:border-t-blue-400 rounded-full animate-spin mb-4 shrink-0"></div>
+//             <p className="text-gray-500 dark:text-gray-400 font-medium text-sm sm:text-base break-words text-center">Chargement de votre session...</p>
 //         </div>
 //     );
 
 //     const ToastComponent = () => (
-//         <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 transition-all duration-500 transform ${showToast.visible ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0 pointer-events-none'} ${showToast.type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'}`}>
-//             {showToast.type === 'success' ? '✅' : '❌'} <span className="font-bold">{showToast.message}</span>
+//         <div className={`fixed bottom-6 right-4 sm:right-6 px-4 sm:px-6 py-3 sm:py-4 rounded-xl shadow-2xl flex items-center gap-2 sm:gap-3 z-50 transition-all duration-500 transform max-w-[calc(100vw-2rem)] sm:max-w-md ${showToast.visible ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0 pointer-events-none'} ${showToast.type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'}`}>
+//             <span className="shrink-0">{showToast.type === 'success' ? '✅' : '❌'}</span>
+//             <span className="font-bold text-sm sm:text-base break-words line-clamp-2">{showToast.message}</span>
 //         </div>
 //     );
 
 //     return (
-//         <div className="container mx-auto p-4 md:p-8 transition-colors duration-300 max-w-7xl relative">
+//         // Conteneur principal de la page (largeur max et centrage) - on enlève w-full car max-w-7xl s'en charge très bien
+//         <div className="container mx-auto px-4 sm:px-6 md:px-8 transition-colors duration-300 max-w-7xl w-full overflow-x-hidden">
 //             <ToastComponent />
             
 //             {sondageASupprimer && (
@@ -364,36 +376,39 @@
 //                 />
 //             )}
 
-//             {user.role === 'super_admin' ? (
-//                 <AdminView 
-//                     donneesChargees={donneesChargees} 
-//                     user={user} tousLesUtilisateurs={tousLesUtilisateurs} tousLesSondages={tousLesSondages}
-//                     adminLogs={adminLogs}
-//                     adminOngletActif={adminOngletActif} setAdminOngletActif={setAdminOngletActif}
-//                     setUtilisateurASupprimer={setUtilisateurASupprimer} setSondageACloturer={setSondageACloturer} setSondageAdminASupprimer={setSondageAdminASupprimer}
-//                     editName={editName} setEditName={setEditName} editEmail={editEmail} setEditEmail={setEditEmail} pwdData={pwdData} setPwdData={setPwdData}
-//                     handleUpdateProfile={handleUpdateProfile} handleUpdatePassword={handleUpdatePassword} loadingProfil={loadingProfil}
-//                 />
-//             ) : location.pathname === '/creer' ? (
-//                 <CreerSondage onSondageCree={handleSondageCree} />
-//             ) : location.pathname === '/dashboard' ? (
-//                 <Navigate to="/mes-sondages" replace />
-//             ) : (
-//                 <UserView 
-//                     donneesChargees={donneesChargees}
-//                     vueActuelle={location.pathname.replace('/', '')}
-//                     mesSondages={mesSondages} 
-//                     historiqueVotes={historiqueVotes} 
-//                     tousLesSondages={tousLesSondages} 
-//                     pageActuelle={pageActuelle} 
-//                     setPageActuelle={setPageActuelle}
-//                     sondagesParPage={sondagesParPage} 
-//                     setSondageASupprimer={setSondageASupprimer} 
-//                     handlePartager={handlePartager}
-//                     editName={editName} setEditName={setEditName} editEmail={editEmail} setEditEmail={setEditEmail} pwdData={pwdData} setPwdData={setPwdData}
-//                     handleUpdateProfile={handleUpdateProfile} handleUpdatePassword={handleUpdatePassword} loadingProfil={loadingProfil}
-//                 />
-//             )}
+//             {/* w-full garanti que le composant enfant occupera bien tout l'espace central */}
+//             <div className="w-full mt-4 sm:mt-6 md:mt-8 pb-10">
+//                 {user.role === 'super_admin' ? (
+//                     <AdminView 
+//                         donneesChargees={donneesChargees} 
+//                         user={user} tousLesUtilisateurs={tousLesUtilisateurs} tousLesSondages={tousLesSondages}
+//                         adminLogs={adminLogs}
+//                         adminOngletActif={adminOngletActif} setAdminOngletActif={setAdminOngletActif}
+//                         setUtilisateurASupprimer={setUtilisateurASupprimer} setSondageACloturer={setSondageACloturer} setSondageAdminASupprimer={setSondageAdminASupprimer}
+//                         editName={editName} setEditName={setEditName} editEmail={editEmail} setEditEmail={setEditEmail} pwdData={pwdData} setPwdData={setPwdData}
+//                         handleUpdateProfile={handleUpdateProfile} handleUpdatePassword={handleUpdatePassword} loadingProfil={loadingProfil}
+//                     />
+//                 ) : location.pathname === '/creer' ? (
+//                     <CreerSondage onSondageCree={handleSondageCree} />
+//                 ) : location.pathname === '/dashboard' ? (
+//                     <Navigate to="/mes-sondages" replace />
+//                 ) : (
+//                     <UserView 
+//                         donneesChargees={donneesChargees}
+//                         vueActuelle={location.pathname.replace('/', '')}
+//                         mesSondages={mesSondages} 
+//                         historiqueVotes={historiqueVotes} 
+//                         tousLesSondages={tousLesSondages} 
+//                         pageActuelle={pageActuelle} 
+//                         setPageActuelle={setPageActuelle}
+//                         sondagesParPage={sondagesParPage} 
+//                         setSondageASupprimer={setSondageASupprimer} 
+//                         handlePartager={handlePartager}
+//                         editName={editName} setEditName={setEditName} editEmail={editEmail} setEditEmail={setEditEmail} pwdData={pwdData} setPwdData={setPwdData}
+//                         handleUpdateProfile={handleUpdateProfile} handleUpdatePassword={handleUpdatePassword} loadingProfil={loadingProfil}
+//                     />
+//                 )}
+//             </div>
 //         </div>
 //     );
 // }
@@ -405,6 +420,7 @@ import AdminView from '../../components/dashboard/AdminView';
 import UserView from '../../components/dashboard/UserView';
 import ModalBanUser from '../../components/ui/ModalBanUser';
 
+// Ces variables gardent les données en mémoire pour éviter les appels API inutiles.
 let memoireUser = null;
 let memoireAdmin = null;
 
@@ -490,7 +506,16 @@ export default function Dashboard() {
     const [pwdData, setPwdData] = useState({ current_password: '', new_password: '', new_password_confirmation: '' });
     const [loadingProfil, setChargementProfil] = useState(false);
 
+    // ==========================================
+    // 🔥 CORRECTION DE LA GESTION DU CACHE USER
+    // ==========================================
     const chargerDonneesNormales = async (userId) => {
+        // 1. Si le cache existe mais appartient à l'ancien utilisateur, ON LE VIDE.
+        if (memoireUser && memoireUser.userId !== userId) {
+            memoireUser = null;
+        }
+
+        // 2. S'il y a un cache valide pour cet utilisateur, on l'utilise.
         if (memoireUser) {
             setMesSondages(memoireUser.sondages);
             setHistoriqueVotes(memoireUser.votes);
@@ -500,17 +525,11 @@ export default function Dashboard() {
         }
         
         try {
-            // CORRECTION DE L'APPEL API :
-            // Au lieu de récupérer /sondages (qui peut cacher les sondages privés ou expirés), 
-            // on appelle spécifiquement la route /mes-sondages de Laravel si elle existe.
-            // Si elle n'existe pas, on modifie juste le filtrage pour s'assurer que le user.id est bien comparé en Number/String
-            
             const [resSondages, resVotes] = await Promise.all([
                 api.get('/sondages'),
                 api.get('/mes-votes')
             ]);
             
-            // Forcer la comparaison en String pour éviter les bugs d'ID (ex: 1 !== "1")
             const userIdString = String(userId);
             const sondagesFiltres = resSondages.data.filter(s => String(s.user_id) === userIdString);
             
@@ -518,7 +537,8 @@ export default function Dashboard() {
             setHistoriqueVotes(resVotes.data);
             setTousLesSondages(resSondages.data); 
             
-            memoireUser = { sondages: sondagesFiltres, votes: resVotes.data, tous: resSondages.data }; 
+            // 3. On sauvegarde le cache AVEC l'ID de l'utilisateur
+            memoireUser = { userId: userId, sondages: sondagesFiltres, votes: resVotes.data, tous: resSondages.data }; 
             
         } catch (err) { 
             console.error("Erreur chargement utilisateur :", err); 
@@ -527,7 +547,15 @@ export default function Dashboard() {
         }
     };
 
-    const chargerDonneesAdmin = async () => {
+    // ==========================================
+    // 🔥 CORRECTION DE LA GESTION DU CACHE ADMIN
+    // ==========================================
+    const chargerDonneesAdmin = async (userId) => {
+        // 1. On vérifie que le cache admin appartient bien à cet utilisateur
+        if (memoireAdmin && memoireAdmin.userId !== userId) {
+            memoireAdmin = null;
+        }
+
         if (memoireAdmin) {
             setTousLesUtilisateurs(memoireAdmin.users);
             setTousLesSondages(memoireAdmin.sondages);
@@ -539,14 +567,15 @@ export default function Dashboard() {
         try {
             const [resUsers, resSondages, resLogs] = await Promise.all([
                 api.get('/users'), 
-                api.get('/sondages'), // En admin, la route /sondages renvoie TOUT via le backend
+                api.get('/sondages'),
                 api.get('/admin/logs')
             ]);
             setTousLesUtilisateurs(resUsers.data);
             setTousLesSondages(resSondages.data);
             setAdminLogs(resLogs.data);
        
-            memoireAdmin = { users: resUsers.data, sondages: resSondages.data, logs: resLogs.data };
+            // 2. On attache l'ID de l'Admin au cache
+            memoireAdmin = { userId: userId, users: resUsers.data, sondages: resSondages.data, logs: resLogs.data };
             
         } catch (err) { 
             console.error("Erreur chargement admin :", err); 
@@ -571,8 +600,10 @@ export default function Dashboard() {
             if (!editEmail) setEditEmail(parsedUser.email);
 
             if (parsedUser.role === 'super_admin') {
-                chargerDonneesAdmin();
+                // On passe l'ID à la fonction
+                chargerDonneesAdmin(parsedUser.id);
             } else {
+                // On passe l'ID à la fonction
                 chargerDonneesNormales(parsedUser.id);
             }
 
@@ -590,7 +621,7 @@ export default function Dashboard() {
         memoireUser = null;  
         
         if (user?.role === 'super_admin') { 
-            await chargerDonneesAdmin(); 
+            await chargerDonneesAdmin(user.id); 
             navigate('/admin'); 
         } else { 
             await chargerDonneesNormales(user.id); 
@@ -667,7 +698,7 @@ export default function Dashboard() {
             setBanDurationPreset('7');
             setCustomDays(''); 
             
-            chargerDonneesAdmin();
+            chargerDonneesAdmin(user.id);
             afficherToast("Utilisateur suspendu !");
         } catch (err) {
             afficherToast(err.response?.data?.message || "Erreur", 'error');
@@ -685,7 +716,7 @@ export default function Dashboard() {
             memoireAdmin = null; 
             setMotifAction(''); 
             setSondageACloturer(null); 
-            chargerDonneesAdmin(); 
+            chargerDonneesAdmin(user.id); 
             afficherToast("Clôturé.");
         } catch (err) { 
             afficherToast("Erreur", 'error'); 
@@ -700,7 +731,7 @@ export default function Dashboard() {
             memoireAdmin = null; 
             setSondageAdminASupprimer(null); 
             setMotifAction(''); 
-            chargerDonneesAdmin(); 
+            chargerDonneesAdmin(user.id); 
             afficherToast("Effacé.");
         } catch (err) { 
             afficherToast("Erreur", 'error'); 
@@ -714,7 +745,6 @@ export default function Dashboard() {
     };
     
     if (!user) return (
-        // Securité responsive : w-full max-w-full overflow-hidden
         <div className="w-full max-w-full min-h-[60vh] flex flex-col items-center justify-center animate-fade-in overflow-hidden px-4">
             <div className="w-10 h-10 sm:w-12 sm:h-12 border-4 border-blue-200 border-t-[#3b82f6] dark:border-gray-700 dark:border-t-blue-400 rounded-full animate-spin mb-4 shrink-0"></div>
             <p className="text-gray-500 dark:text-gray-400 font-medium text-sm sm:text-base break-words text-center">Chargement de votre session...</p>
@@ -729,7 +759,6 @@ export default function Dashboard() {
     );
 
     return (
-        // Conteneur principal de la page (largeur max et centrage) - on enlève w-full car max-w-7xl s'en charge très bien
         <div className="container mx-auto px-4 sm:px-6 md:px-8 transition-colors duration-300 max-w-7xl w-full overflow-x-hidden">
             <ToastComponent />
             
@@ -774,7 +803,6 @@ export default function Dashboard() {
                 />
             )}
 
-            {/* w-full garanti que le composant enfant occupera bien tout l'espace central */}
             <div className="w-full mt-4 sm:mt-6 md:mt-8 pb-10">
                 {user.role === 'super_admin' ? (
                     <AdminView 

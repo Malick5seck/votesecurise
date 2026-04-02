@@ -18,8 +18,10 @@ class SondageController extends Controller
         // 1. On récupère l'utilisateur connecté via Sanctum (sans bloquer s'il est visiteur)
         $user = auth('sanctum')->user();
         
-        // 2. Base de la requête (On précharge les questions et on compte les votes)
-        $query = Sondage::with('questions')
+        // ⚡ OPTIMISATION DES PERFORMANCES : 
+        // - On retire ->with('questions') pour ne pas envoyer le contenu complet de chaque sondage dans la liste.
+        // - On utilise ->select(...) pour ne charger que les données strictement nécessaires à l'affichage des cartes.
+        $query = Sondage::select('id', 'user_id', 'titre', 'description', 'slug', 'est_anonyme', 'est_prive', 'date_debut', 'date_fin', 'created_at')
                         ->withCount('votes') 
                         ->latest();
 
@@ -41,6 +43,10 @@ class SondageController extends Controller
                            
         return response()->json($sondages);
     }
+
+    // =========================================================================
+    // TOUT CE QUI SUIT EST INTACT (CRÉATION, PARTICIPATION, RÉSULTATS)
+    // =========================================================================
 
     public function store(Request $request)
     {

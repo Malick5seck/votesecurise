@@ -12,7 +12,16 @@ class VoteController extends Controller
 {
     public function voter(Request $request, $sondage_id)
     {
-        $user = $request->user(); 
+        $user = $request->user();
+
+        if ($user && $user->isCurrentlyBanned()) {
+            $msg = $user->ban_until
+                ? 'Votre compte est suspendu jusqu\'au ' . $user->ban_until->timezone(config('app.timezone'))->format('d/m/Y \à H:i') . '. Vous ne pouvez pas voter.'
+                : 'Votre compte est suspendu. Vous ne pouvez pas voter.';
+
+            return response()->json(['message' => $msg], 403);
+        }
+
         $sondage = Sondage::findOrFail($sondage_id);
 
         if ($sondage->date_fin && \Carbon\Carbon::parse($sondage->date_fin)->isPast()) {

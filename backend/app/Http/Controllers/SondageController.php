@@ -96,6 +96,14 @@ class SondageController extends Controller
         $a_deja_vote = false;
         
         if ($user = auth('sanctum')->user()) {
+            if ($user->isCurrentlyBanned()) {
+                $msg = $user->ban_until
+                    ? 'Votre compte est suspendu jusqu\'au ' . $user->ban_until->timezone(config('app.timezone'))->format('d/m/Y \à H:i') . '.'
+                    : 'Votre compte est suspendu. Vous ne pouvez pas accéder aux sondages.';
+
+                return response()->json(['message' => $msg], 403);
+            }
+
             $a_deja_vote = Vote::where('user_id', $user->id)
                             ->where('sondage_id', $sondage->id)
                             ->exists();

@@ -54,6 +54,17 @@ class AuthController extends Controller
             ]);
         }
 
+        if ($user->isCurrentlyBanned()) {
+            $message = $user->ban_until
+                ? 'Votre compte est suspendu jusqu\'au ' . $user->ban_until->timezone(config('app.timezone'))->format('d/m/Y \à H:i') . '.'
+                : 'Votre compte est suspendu.';
+
+            return response()->json([
+                'message' => $message,
+                'ban_until' => $user->ban_until,
+            ], 403);
+        }
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([

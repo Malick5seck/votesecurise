@@ -5,13 +5,22 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB; 
+use Illuminate\Support\Facades\DB;
+use App\Mail\AdminNotificationMail; // ⚡ Ajout pour les emails
+use Illuminate\Support\Facades\Mail; // ⚡ Ajout pour les emails
+use Illuminate\Support\Facades\Log; // ⚡ Ajout pour les logs
+
 class UserController extends Controller
 {
-    // Lister les utilisateurs 
+    // ⚡ OPTIMISATION 1 : Lean Payload (Colonnes ciblées) + withCount côté SQL
     public function index()
     {
-        return response()->json(User::all());
+        $users = User::select('id', 'name', 'email', 'role', 'ban_started_at', 'ban_until', 'created_at')
+                     ->withCount('sondages')
+                     ->latest()
+                     ->get();
+
+        return response()->json($users);
     }
 
     public function destroy(Request $request, $id)
@@ -67,6 +76,17 @@ class UserController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+
+            // 📩 ENVOI D'EMAIL (Silent Fail)
+            try {
+                Mail::to($userToSuspend->email)->send(new AdminNotificationMail('ban', [
+                    'name' => $userToSuspend->name,
+                    'duree' => $detailFin,
+                    'motif' => $motif
+                ]));
+            } catch (\Exception $e) {
+                Log::error("Erreur envoi email (Ban) : " . $e->getMessage());
+            }
         }
 
         return response()->json([
@@ -75,7 +95,6 @@ class UserController extends Controller
         ]);
     }
 
-    //fonction pour mettre à jour le profil
     public function updateProfile(Request $request)
     {
         $user = $request->user();
@@ -93,7 +112,6 @@ class UserController extends Controller
         ]);
     }
 
-    //fonction pour mettre à jour le mot de passe
     public function updatePassword(Request $request)
     {
         $user = $request->user();
@@ -114,21 +132,29 @@ class UserController extends Controller
         return response()->json(['message' => 'Mot de passe modifié avec succès.']);
     }
 
-    // fonction pour afficher l'historique d'un utilisateur (sondages créés et votes)
+    // ⚡ OPTIMISATION 2 : Limites strictes sur les historiques pour protéger la RAM (take 100)
     public function historiqueUtilisateur($id)
     {
         $user = User::findOrFail($id);
-        
-        $sondagesCrees = \App\Models\Sondage::where('user_id', $id)->withCount('votes')->latest()->get();
-        
-        $votes = \App\Models\Vote::where('user_id', $id)->with('sondage:id,titre')->latest()->get();
 
-        //récupérer les logs d'administration si l'utilisateur est un super admin
+        $sondagesCrees = \App\Models\Sondage::where('user_id', $id)
+            ->withCount('votes', 'questions') // Ajout du count des questions pour un aperçu rapide
+            ->latest()
+            ->take(100)
+            ->get();
+
+        $votes = \App\Models\Vote::where('user_id', $id)
+            ->with('sondage:id,titre')
+            ->latest()
+            ->take(100)
+            ->get();
+
         $adminLogs = [];
         if ($user->role === 'super_admin') {
             $adminLogs = DB::table('admin_logs')
                 ->where('user_id', $id)
                 ->orderBy('created_at', 'desc')
+                ->take(100)
                 ->get();
         }
 
@@ -136,10 +162,11 @@ class UserController extends Controller
             'user' => $user,
             'sondages_crees' => $sondagesCrees,
             'historique_votes' => $votes,
-            'admin_logs' => $adminLogs 
+            'admin_logs' => $adminLogs
         ]);
     }
-    //fonction recuperer les actions d'administration pour le super admin
+
+    // ⚡ OPTIMISATION 3 : Limite de sécurité globale sur les logs
     public function getAdminLogs(Request $request)
     {
         if ($request->user()->role !== 'super_admin') {
@@ -148,6 +175,7 @@ class UserController extends Controller
 
         $logs = DB::table('admin_logs')
             ->orderBy('created_at', 'desc')
+            ->take(1000)
             ->get();
 
         return response()->json($logs);

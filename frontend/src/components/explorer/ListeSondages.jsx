@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'; 
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
-import { sondagePublicEnCours } from '../../utils/sondagesPublic';
 import SondageCard from '../ui/SondageCard';
 
 export default function ListeSondages({ variant = 'default' }) {
@@ -17,10 +16,12 @@ export default function ListeSondages({ variant = 'default' }) {
     useEffect(() => {
         const fetchSondages = async () => {
             try {
-                const reponse = await api.get('/sondages');
-                const maintenant = new Date();
+                // ⚡ OPTIMISATION 3 : On demande uniquement les sondages actifs ! 
+                // Le serveur SQL a DÉJÀ retiré les sondages expirés, privés, ou pas encore commencés.
+                const reponse = await api.get('/sondages?actifs_seulement=true');
                 
-                let sondagesActifs = reponse.data.filter((s) => sondagePublicEnCours(s, maintenant));
+                // Plus besoin de filtrer en Javascript, les données sont déjà prêtes !
+                let sondagesActifs = reponse.data;
 
                 if (variant === 'accueil') {
                     sondagesActifs = [...sondagesActifs].sort(

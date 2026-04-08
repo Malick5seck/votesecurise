@@ -39,10 +39,23 @@ export default function AdminView({
     const sExpires = safeSondages.length - sActifs;
     const topS = [...safeSondages].sort((a, b) => (b.votes_count || 0) - (a.votes_count || 0)).slice(0, 5);
 
+    // ⚡ Le TRI PAR NOMBRE DE SONDAGES EST APPLIQUÉ ICI :
     const utilisateursFiltres = safeUsers.filter(u => 
         (u?.name || '').toLowerCase().includes(rechercheUtilisateur.toLowerCase()) || 
         (u?.email || '').toLowerCase().includes(rechercheUtilisateur.toLowerCase())
-    );
+    ).sort((a, b) => {
+        // 1. On calcule le vrai nombre de sondages pour chaque utilisateur
+        const nbSondagesA = safeSondages.filter(s => String(s.user_id) === String(a.id)).length;
+        const nbSondagesB = safeSondages.filter(s => String(s.user_id) === String(b.id)).length;
+        
+        // 2. On trie du plus grand au plus petit
+        if (nbSondagesB !== nbSondagesA) {
+            return nbSondagesB - nbSondagesA;
+        }
+        
+        // 3. En cas d'égalité, on trie par date d'inscription la plus récente
+        return new Date(b.created_at) - new Date(a.created_at);
+    });
 
     const sondagesFiltres = safeSondages.filter(s => 
         (s?.titre || '').toLowerCase().includes(rechercheSondage.toLowerCase())

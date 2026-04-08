@@ -43,7 +43,7 @@ export default function ResetPassword() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-fondSombre py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
             {/* 🔥 RESPONSIVE : Ajustement du padding sur petits écrans */}
-            <div className="max-w-md w-full bg-white dark:bg-carteSombre p-6 sm:p-8 md:p-10 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 animate-fade-in relative overflow-hidden">
+            <div className="max-w-md w-full bg-white dark:bg-carteSombre p-6 sm:p-8 md:p-10 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 animate-slide-up relative overflow-hidden">
                 
                 <div className="text-center mb-8">
                     {succesReset ? (

@@ -21,7 +21,7 @@ export default function ParticiperSondage() {
     const [reponses, setReponses] = useState({});
     const [voterAnonymement, setVoterAnonymement] = useState(false);
 
-    // 2. Détection de l'utilisateur (On retire isSuperAdmin d'ici pour la sécurité)
+    // 2. Détection de l'utilisateur
     const userString = localStorage.getItem('user');
     let currentUser = null;
     
@@ -33,12 +33,14 @@ export default function ParticiperSondage() {
         }
     }
 
+    // ⚡ VÉRIFICATION DU RÔLE ADMIN
+    const estAdmin = currentUser?.role === 'super_admin';
+
     const queryParams = new URLSearchParams(location.search);
     const isModeConsultation = queryParams.get('mode') === 'consultation';
     
-    // 🔒 CORRECTION POINT 4 : On ne fait plus confiance au LocalStorage pour débloquer les écrans.
-    // Le mode consultation via l'URL (qui ne permet pas de voter de toute façon) suffit pour la lecture seule.
-    const isReadOnly = isModeConsultation;
+    // 🔒 L'admin est TOUJOURS en mode lecture seule s'il force l'aperçu d'un sondage expiré
+    const isReadOnly = isModeConsultation || estAdmin;
 
     // 3. Déclaration de l'expiration
     const estExpire = sondage?.date_fin ? new Date(sondage.date_fin) < new Date() : false;
@@ -53,7 +55,8 @@ export default function ParticiperSondage() {
                 
                 let utilisateurAutorise = true;
 
-                if (isReadOnly) {
+                // ⚡ L'admin a le droit de TOUT voir, peu importe les restrictions d'emails
+                if (isReadOnly || estAdmin) {
                     utilisateurAutorise = true;
                 } else if (donneesSondage.domaine_restreint || (donneesSondage.emails_autorises && donneesSondage.emails_autorises.length > 0)) {
                     if (!currentUser) {
@@ -103,7 +106,7 @@ export default function ParticiperSondage() {
             }
         };
         fetchSondage();
-    }, [id, isReadOnly]); 
+    }, [id, isReadOnly, estAdmin]); 
 
     // 5. Gestion des inputs
     const handleTextChange = (questionId, valeur) => {
@@ -120,13 +123,10 @@ export default function ParticiperSondage() {
         if (isReadOnly) return;
         setReponses(prev => {
             const reponseActuelle = prev[questionId] || { options_multiples: [] };
-            
-            // 🧹 CORRECTION POINT 6 (Clean Code) : On clone proprement le tableau existant
-            // avant de le modifier, pour ne pas muter l'état React directement.
             let nouvellesOptions = [...(reponseActuelle.options_multiples || [])];
             
             if (estCoche) {
-                nouvellesOptions.push(optionId);
+                nouellesOptions.push(optionId);
             } else {
                 nouvellesOptions = nouvellesOptions.filter(optId => optId !== optionId);
             }
@@ -162,6 +162,12 @@ export default function ParticiperSondage() {
                 reponses: formatReponses,
                 est_anonyme: voterAnonymement 
             });
+            
+            // ⚡ LE SIGNAL MAGIQUE EST ICI :
+            // On dit au navigateur de se souvenir qu'un vote a été fait
+            // Le Dashboard.jsx verra ce message et videra sa mémoire !
+            sessionStorage.setItem('rafraichirCache', 'oui');
+            
             setVoteReussi(true);
         } catch (err) {
             setErreurSubmit(err.response?.data?.message || "Erreur lors de l'enregistrement du vote.");
@@ -197,7 +203,8 @@ export default function ParticiperSondage() {
         </div>
     );
 
-    if (estExpire && !isReadOnly) return (
+    // ⚡ MODIFICATION : On bloque l'affichage de l'erreur "Expiré" SI c'est un administrateur
+    if (estExpire && !isReadOnly && !estAdmin) return (
         <div className="w-full max-w-2xl mx-auto py-12 sm:py-20 px-4 text-center transition-colors duration-300 animate-fade-in overflow-hidden">
             <div className="bg-red-50 dark:bg-red-900/20 p-6 sm:p-10 rounded-2xl shadow-lg border border-red-200 dark:border-red-800 w-full">
                 <div className="text-5xl sm:text-6xl mb-4 shrink-0">⏳</div>
@@ -255,6 +262,8 @@ export default function ParticiperSondage() {
                 </svg>
                 Retour
             </button>
+
+           
 
             <div className="bg-[#3b82f6] text-white p-5 sm:p-8 rounded-t-2xl shadow-md w-full">
                 <h1 className="text-2xl sm:text-3xl font-extrabold mb-3 leading-tight break-words">{sondage.titre}</h1>

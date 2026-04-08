@@ -6,8 +6,25 @@ import AdminView from '../../components/dashboard/AdminView';
 import UserView from '../../components/dashboard/UserView';
 import ModalBanUser from '../../components/ui/ModalBanUser';
 
+// ⚡ RESTAURATION DU CACHE : C'est ce qui rend l'application ultra-rapide (0 ms de latence réseau)
 let memoireUser = null;
 let memoireAdmin = null;
+
+// ⚡ EXTRACTEUR INTELLIGENT : Trouve le tableau de données peu importe le format envoyé par Laravel
+const extraireTableau = (reponseAPI) => {
+    const data = reponseAPI?.data;
+    if (!data) return [];
+    if (Array.isArray(data)) return data; // Si c'est un tableau direct (comme les Users)
+    if (Array.isArray(data.data)) return data.data; // Si c'est une pagination classique
+    
+    // Si Laravel l'a emballé dans un nom personnalisé (ex: { sondages: [...] })
+    const valeurs = Object.values(data);
+    for (let val of valeurs) {
+        if (Array.isArray(val)) return val;
+        if (val && Array.isArray(val.data)) return val.data;
+    }
+    return [];
+};
 
 const ModalAction = ({ titre, desc, icon, color, onConfirm, onCancel, confirmText, avecMotif, motifValue, setMotifValue }) => {
     const handleCancel = () => { 
@@ -91,20 +108,25 @@ export default function Dashboard() {
     const [pwdData, setPwdData] = useState({ current_password: '', new_password: '', new_password_confirmation: '' });
     const [loadingProfil, setChargementProfil] = useState(false);
 
-    const chargerDonneesNormales = async (userId) => {
-
-        if (memoireUser && memoireUser.userId !== userId) {
+   const chargerDonneesNormales = async (userId) => {
+        if (sessionStorage.getItem('rafraichirCache') === 'oui') {
             memoireUser = null;
+            memoireAdmin = null;
+            sessionStorage.removeItem('rafraichirCache');
         }
 
+        if (memoireUser && memoireUser.userId !== userId) memoireUser = null;
+
+        // ⚡ 1. AFFICHAGE INSTANTANÉ (On charge le cache)
         if (memoireUser) {
             setMesSondages(memoireUser.sondages);
             setHistoriqueVotes(memoireUser.votes);
             setTousLesSondages(memoireUser.tous); 
             setDonneesChargees(true);
-            return; 
+            // ❌ ON NE MET PLUS DE "return;" ICI ! On laisse la fonction continuer.
         }
         
+        // ⚡ 2. VÉRIFICATION EN ARRIÈRE-PLAN
         try {
             const [resSondages, resVotes] = await Promise.all([
                 api.get('/sondages'),
@@ -112,13 +134,15 @@ export default function Dashboard() {
             ]);
             
             const userIdString = String(userId);
-            const sondagesFiltres = resSondages.data.filter(s => String(s.user_id) === userIdString);
+            const dataSondages = extraireTableau(resSondages);
+            const sondagesFiltres = dataSondages.filter(s => String(s.user_id) === userIdString);
             
+            // On met à jour l'écran silencieusement avec les données fraîches
             setMesSondages(sondagesFiltres); 
-            setHistoriqueVotes(resVotes.data);
-            setTousLesSondages(resSondages.data); 
+            setHistoriqueVotes(extraireTableau(resVotes));
+            setTousLesSondages(dataSondages); 
             
-            memoireUser = { userId: userId, sondages: sondagesFiltres, votes: resVotes.data, tous: resSondages.data }; 
+            memoireUser = { userId: userId, sondages: sondagesFiltres, votes: resVotes.data, tous: dataSondages }; 
             
         } catch (err) { 
             console.error("Erreur chargement utilisateur :", err); 
@@ -128,30 +152,41 @@ export default function Dashboard() {
     };
 
     const chargerDonneesAdmin = async (userId) => {
-
-        if (memoireAdmin && memoireAdmin.userId !== userId) {
+        if (sessionStorage.getItem('rafraichirCache') === 'oui') {
+            memoireUser = null;
             memoireAdmin = null;
+            sessionStorage.removeItem('rafraichirCache');
         }
 
+        if (memoireAdmin && memoireAdmin.userId !== userId) memoireAdmin = null;
+
+        // ⚡ 1. AFFICHAGE INSTANTANÉ
         if (memoireAdmin) {
             setTousLesUtilisateurs(memoireAdmin.users);
             setTousLesSondages(memoireAdmin.sondages);
             setAdminLogs(memoireAdmin.logs);
             setDonneesChargees(true);
-            return; 
+            // ❌ PLUS DE "return;" ICI NON PLUS
         }
 
+        // ⚡ 2. VÉRIFICATION EN ARRIÈRE-PLAN
         try {
             const [resUsers, resSondages, resLogs] = await Promise.all([
                 api.get('/users'), 
                 api.get('/sondages'),
                 api.get('/admin/logs')
             ]);
-            setTousLesUtilisateurs(resUsers.data);
-            setTousLesSondages(resSondages.data);
-            setAdminLogs(resLogs.data);
+
+            const dUsers = extraireTableau(resUsers);
+            const dSondages = extraireTableau(resSondages);
+            const dLogs = extraireTableau(resLogs);
+
+            // Mise à jour silencieuse
+            setTousLesUtilisateurs(dUsers);
+            setTousLesSondages(dSondages);
+            setAdminLogs(dLogs);
        
-            memoireAdmin = { userId: userId, users: resUsers.data, sondages: resSondages.data, logs: resLogs.data };
+            memoireAdmin = { userId: userId, users: dUsers, sondages: dSondages, logs: dLogs };
             
         } catch (err) { 
             console.error("Erreur chargement admin :", err); 
@@ -159,7 +194,7 @@ export default function Dashboard() {
             setDonneesChargees(true);
         }
     };
-
+    
     useEffect(() => {
         sessionStorage.setItem('adminOngletActif', adminOngletActif);
     }, [adminOngletActif]);
@@ -176,10 +211,8 @@ export default function Dashboard() {
             if (!editEmail) setEditEmail(parsedUser.email);
 
             if (parsedUser.role === 'super_admin') {
-                
                 chargerDonneesAdmin(parsedUser.id);
             } else {
-                
                 chargerDonneesNormales(parsedUser.id);
             }
 
@@ -234,9 +267,16 @@ export default function Dashboard() {
     const confirmerSuppression = async () => {
         try {
             await api.delete(`/sondages/${sondageASupprimer}`);
-            memoireUser = null; 
+            
             const nvListe = mesSondages.filter(s => s.id !== sondageASupprimer);
-            setMesSondages(nvListe); setSondageASupprimer(null);
+            setMesSondages(nvListe); 
+            if (memoireUser) {
+                memoireUser.sondages = nvListe;
+                memoireUser.tous = memoireUser.tous.filter(s => s.id !== sondageASupprimer);
+                setTousLesSondages(memoireUser.tous);
+            }
+
+            setSondageASupprimer(null);
             if (pageActuelle > Math.ceil(nvListe.length / sondagesParPage)) setPageActuelle(Math.max(1, pageActuelle - 1));
             afficherToast("Sondage supprimé.");
         } catch (err) { afficherToast("Erreur", 'error'); setSondageASupprimer(null); }
@@ -267,7 +307,8 @@ export default function Dashboard() {
                     ...(duration_days ? { duration_days } : {}),
                 },
             });
-            memoireAdmin = null;
+            
+            memoireAdmin = null; 
             
             setUtilisateurASupprimer(null);
             setMotifAction('');
@@ -285,33 +326,36 @@ export default function Dashboard() {
         }
     };
 
+    
     const confirmerCloture = async () => {
         if (!motifAction.trim()) return afficherToast("Veuillez fournir un motif.", "error");
         try {
             await api.put(`/sondages/${sondageACloturer}/cloturer`, { motif: motifAction });
-            memoireAdmin = null; 
+            
+            // ⚡ OPTIMISATION : Mise à jour optimiste (Instantanée)
+            const dateFinMaintenant = new Date().toISOString(); // On génère la date/heure actuelle
+            
+            // On met à jour le tableau React immédiatement pour changer l'affichage
+            const nvSondages = tousLesSondages.map(s => 
+                s.id === sondageACloturer ? { ...s, date_fin: dateFinMaintenant } : s
+            );
+            setTousLesSondages(nvSondages);
+            
+            // On met à jour le cache mémoire pour éviter qu'il ne ramène l'ancienne date
+            if (memoireAdmin) {
+                memoireAdmin.sondages = nvSondages;
+            }
+            
             setMotifAction(''); 
             setSondageACloturer(null); 
-            chargerDonneesAdmin(user.id); 
-            afficherToast("Clôturé.");
-        } catch (err) { 
-            afficherToast("Erreur", 'error'); 
-            setSondageACloturer(null); setMotifAction('');
-        }
-    };
+            afficherToast("Sondage clôturé avec succès.");
 
-    const confirmerSuppressionSondageAdmin = async () => {
-        if (!motifAction.trim()) return afficherToast("Veuillez fournir un motif.", "error");
-        try {
-            await api.delete(`/sondages/${sondageAdminASupprimer}`, { data: { motif: motifAction } });
-            memoireAdmin = null; 
-            setSondageAdminASupprimer(null); 
-            setMotifAction(''); 
+            // On recharge discrètement en arrière-plan pour mettre à jour le Journal d'Audit
             chargerDonneesAdmin(user.id); 
-            afficherToast("Sondage supprimé.");
         } catch (err) { 
-            afficherToast("Erreur", 'error'); 
-            setSondageAdminASupprimer(null); setMotifAction('');
+            afficherToast("Erreur lors de la clôture", 'error'); 
+            setSondageACloturer(null); 
+            setMotifAction('');
         }
     };
 
@@ -335,7 +379,7 @@ export default function Dashboard() {
     );
 
     return (
-        <div className="container mx-auto px-4 sm:px-6 md:px-8 transition-colors duration-300 max-w-7xl w-full overflow-x-hidden">
+        <div className="container mx-auto px-4 sm:px-6 md:px-8 transition-colors duration-300 max-w-7xl w-full overflow-x-hidden ">
             <ToastComponent />
             
             {sondageASupprimer && (

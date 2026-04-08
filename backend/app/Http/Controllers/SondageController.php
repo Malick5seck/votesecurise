@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User; // ⚡ Ajout pour récupérer le propriétaire du sondage
 use App\Models\Sondage;
 use App\Models\Question;
 use App\Models\Option;
@@ -10,6 +11,9 @@ use Illuminate\Http\Request;
 use App\Models\Vote;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use App\Mail\AdminNotificationMail; // ⚡ Ajout pour les emails
+use Illuminate\Support\Facades\Mail; // ⚡ Ajout pour les emails
+use Illuminate\Support\Facades\Log; // ⚡ Ajout pour les logs
 
 class SondageController extends Controller
 {
@@ -18,9 +22,25 @@ class SondageController extends Controller
         $user = auth('sanctum')->user();
         
         $query = Sondage::select('id', 'user_id', 'titre', 'description', 'slug', 'est_anonyme', 'est_prive', 'date_debut', 'date_fin', 'created_at')
-                        ->withCount('votes') 
+                        ->withCount('votes', 'questions') // Ajout du count des questions pour un aperçu rapide
                         ->latest();
 
+        // ⚡ OPTIMISATION 3 : Filtrage SQL ultra-rapide pour l'explorateur public
+        if ($request->has('actifs_seulement')) {
+            $maintenant = now();
+            $sondages = $query->where('est_prive', false)
+                ->where(function($q) use ($maintenant) {
+                    $q->whereNull('date_fin')->orWhere('date_fin', '>', $maintenant);
+                })
+                ->where(function($q) use ($maintenant) {
+                    $q->whereNull('date_debut')->orWhere('date_debut', '<=', $maintenant);
+                })
+                ->get();
+                
+            return response()->json($sondages);
+        }
+
+        // Comportement classique pour le Centre de Contrôle (qui a besoin de TOUT voir)
         if ($user && $user->role === 'super_admin') {
             $sondages = $query->get();
         } elseif ($user) {
@@ -31,7 +51,7 @@ class SondageController extends Controller
         } else {
             $sondages = $query->where('est_prive', false)->get();
         }
-                           
+                            
         return response()->json($sondages);
     }
 
@@ -45,9 +65,9 @@ class SondageController extends Controller
             'date_debut' => 'nullable|date',
             'date_fin' => 'nullable|date|after_or_equal:date_debut',
             'domaine_restreint' => 'nullable|string',
-            'emails_autorises' => 'nullable|array',   
+            'emails_autorises' => 'nullable|array',  
             // 🔒 OPTIMISATION : On s'assure que si on a un tableau d'emails, ce sont bien des emails valides
-            'emails_autorises.*' => 'email', 
+            'emails_autorises.*' => 'email',
             'message_remerciement' => 'nullable|string',
             'questions' => 'required|array|min:1',
             'questions.*.titre' => 'required|string',
@@ -68,8 +88,8 @@ class SondageController extends Controller
                 'est_prive' => $request->est_prive ?? false,
                 'date_debut' => $validated['date_debut'] ?? null,
                 'date_fin' => $validated['date_fin'] ?? null,
-                'domaine_restreint' => $validated['domaine_restreint'] ?? null, 
-                'emails_autorises' => $validated['emails_autorises'] ?? null,   
+                'domaine_restreint' => $validated['domaine_restreint'] ?? null,
+                'emails_autorises' => $validated['emails_autorises'] ?? null,  
                 'message_remerciement' => $validated['message_remerciement'] ?? null,
             ]);
 
@@ -128,7 +148,7 @@ class SondageController extends Controller
         return response()->json($sondage);
     }
 
-    public function resultats(Request $request, $id)
+   public function resultats(Request $request, $id)
     {
         $sondage = Sondage::with('questions.options')->findOrFail($id);
         $user = $request->user();
@@ -142,17 +162,15 @@ class SondageController extends Controller
         $totalVotes = $sondage->votes()->count();
         $statistiques = [];
 
-        // 🚀 OPTIMISATION POINT 2 : Requêtes groupées pour supprimer le problème N+1
+        // ⚡ OPTIMISATION 1 : On groupe les calculs en SQL pour éviter les requêtes N+1
         $questionIds = $sondage->questions->pluck('id');
 
-        // 1. On compte les votes de TOUTES les options du sondage d'un seul coup
         $reponsesCount = Reponse::select('option_id', DB::raw('count(*) as total'))
             ->whereIn('question_id', $questionIds)
             ->whereNotNull('option_id')
             ->groupBy('option_id')
             ->pluck('total', 'option_id');
 
-        // 2. On calcule les moyennes de TOUTES les questions 'rating/slider' d'un seul coup
         $ratingAverages = Reponse::select('question_id', DB::raw('avg(valeur_texte) as moyenne'))
             ->whereIn('question_id', $questionIds)
             ->whereNotNull('valeur_texte')
@@ -169,7 +187,7 @@ class SondageController extends Controller
             if (in_array($question->type, ['qcm', 'checkbox', 'likert', 'boolean', 'ranking', 'matrix'])) {
                 $optionsStats = [];
                 foreach ($question->options as $option) {
-                    // 🚀 On lit directement depuis la mémoire (0 requête SQL ici !)
+                    // ⚡ On lit depuis la mémoire (0 requête SQL dans cette boucle !)
                     $count = $reponsesCount[$option->id] ?? 0;
                     
                     $optionsStats[] = [
@@ -182,7 +200,7 @@ class SondageController extends Controller
                 $statsQuestion['options'] = $optionsStats;
             } 
             elseif (in_array($question->type, ['text', 'number', 'date'])) {
-                // Pour les 10 dernières réponses textes, la requête est conservée ici car le "take(10)" est difficile à grouper globalement
+                // On garde les 10 dernières réponses textes pour ne pas saturer l'écran
                 $statsQuestion['reponses_textes'] = Reponse::where('question_id', $question->id)
                                                 ->whereNotNull('valeur_texte')
                                                 ->latest()
@@ -190,7 +208,7 @@ class SondageController extends Controller
                                                 ->pluck('valeur_texte');
             } 
             elseif (in_array($question->type, ['rating', 'slider'])) {
-                // 🚀 On lit la moyenne depuis la mémoire (0 requête SQL ici !)
+                // ⚡ On lit la moyenne depuis la mémoire (0 requête SQL)
                 $moyenne = $ratingAverages[$question->id] ?? 0;
                 $statsQuestion['moyenne'] = $moyenne ? round($moyenne, 1) : 0;
             }
@@ -198,7 +216,12 @@ class SondageController extends Controller
             $statistiques[] = $statsQuestion;
         }
 
-        $votesDetail = $sondage->votes()->with(['user', 'reponses.option'])->orderBy('created_at', 'asc')->get();
+        // ⚡ OPTIMISATION 2 : On limite le tableau détaillé aux 100 derniers participants (Protège la RAM)
+        $votesDetail = $sondage->votes()
+                               ->with(['user', 'reponses.option'])
+                               ->latest() // On prend les plus récents
+                               ->take(100) // Limite stricte
+                               ->get();
         
         $participants = $votesDetail->map(function ($vote) use ($sondage) {
             $reponsesFormatees = [];
@@ -243,7 +266,7 @@ class SondageController extends Controller
             ], 403);
         }
 
-        $titreSondage = $sondage->titre; 
+        $titreSondage = $sondage->titre;
 
         try {
             if ($user->role === 'super_admin') {
@@ -255,13 +278,27 @@ class SondageController extends Controller
                     'created_at' => now(),
                     'updated_at' => now()
                 ]);
+
+                // 📩 On récupère le créateur pour lui envoyer un email
+                $createur = User::find($sondage->user_id);
+                if ($createur) {
+                    try {
+                        Mail::to($createur->email)->send(new AdminNotificationMail('delete', [
+                            'name' => $createur->name,
+                            'sondage_titre' => $titreSondage,
+                            'motif' => $motif
+                        ]));
+                    } catch (\Exception $e) {
+                        Log::error("Erreur email (Suppression Sondage) : " . $e->getMessage());
+                    }
+                }
             }
 
             $sondage->delete();
             return response()->json(['message' => 'Sondage supprimé avec succès.']);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Erreur lors de la suppression du sondage.', 
+                'message' => 'Erreur lors de la suppression du sondage.',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -274,7 +311,7 @@ class SondageController extends Controller
         }
 
         $sondage = Sondage::findOrFail($id);
-        $sondage->update(['date_fin' => now()]); 
+        $sondage->update(['date_fin' => now()]);
 
         $motif = $request->input('motif', 'Aucun motif fourni');
 
@@ -285,6 +322,20 @@ class SondageController extends Controller
             'created_at' => now(),
             'updated_at' => now()
         ]);
+
+        // 📩 ENVOI D'EMAIL (Silent Fail)
+        $createur = User::find($sondage->user_id);
+        if ($createur) {
+            try {
+                Mail::to($createur->email)->send(new AdminNotificationMail('close', [
+                    'name' => $createur->name,
+                    'sondage_titre' => $sondage->titre,
+                    'motif' => $motif
+                ]));
+            } catch (\Exception $e) {
+                Log::error("Erreur email (Clôture Sondage) : " . $e->getMessage());
+            }
+        }
 
         return response()->json(['message' => 'Le sondage a été clôturé avec succès.']);
     }

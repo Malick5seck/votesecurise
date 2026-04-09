@@ -13,7 +13,6 @@ export default function ResultatsTableauPrint({ sondage, statistiques, participa
             </div>
 
             {/* TABLEAU DES RÉSULTATS */}
-            {/* L'ajout de table-auto garantit une bonne distribution des largeurs de colonnes lors de l'impression */}
             <table className="w-full text-left border-collapse text-[10px] md:text-xs font-sans table-auto">
                 <thead className="bg-gray-100 text-gray-900">
                     <tr className="border-b-2 border-gray-800">
@@ -32,7 +31,6 @@ export default function ResultatsTableauPrint({ sondage, statistiques, participa
                 </thead>
                 <tbody className="text-gray-800">
                     {participants.map((participant, index) => (
-                        // 🔥 CSS D'IMPRESSION : 'break-inside-avoid' empêche le navigateur de couper cette ligne au milieu lors du passage à la page suivante du PDF.
                         <tr key={index} className="border-b border-gray-300 hover:bg-gray-50 break-inside-avoid">
                             <td className="p-3 border border-gray-300 whitespace-nowrap font-mono text-[10px]">
                                 {participant.date}
@@ -46,14 +44,12 @@ export default function ResultatsTableauPrint({ sondage, statistiques, participa
                             
                             {statistiques.map(q => (
                                 <td key={q.id} className="p-3 border border-gray-300 break-words align-top">
-                                    {/* S'il n'y a pas de réponse, on affiche un tiret discret */}
                                     {participant.reponses[q.id] || <span className="text-gray-400">-</span>}
                                 </td>
                             ))}
                         </tr>
                     ))}
                     
-                    {/* Message si le tableau est vide */}
                     {participants.length === 0 && (
                         <tr>
                             <td colSpan={statistiques.length + (sondage.est_anonyme ? 1 : 2)} className="p-6 text-center text-gray-500 italic border border-gray-300">
@@ -64,7 +60,6 @@ export default function ResultatsTableauPrint({ sondage, statistiques, participa
                 </tbody>
             </table>
             
-            {/* PIED DE PAGE POUR L'IMPRESSION */}
             <div className="mt-8 pt-4 border-t border-gray-300 text-center text-xs text-gray-500">
                 <p>Fin du rapport.</p>
             </div>

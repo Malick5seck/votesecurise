@@ -81,7 +81,7 @@ export default function ResultatsSondage() {
     const nombreVotants = sondage.votes_count || sondage.total_votes || 0;
 
     return (
-        // Ajout de w-full et overflow-x-hidden pour cadenasser tout débordement horizontal (particulièrement pour les graphiques)
+        
         <div className="w-full max-w-6xl mx-auto py-6 sm:py-10 px-4 transition-colors duration-300 overflow-x-hidden">
             
             <style>{`
@@ -91,7 +91,6 @@ export default function ResultatsSondage() {
                 }
             `}</style>
 
-            {/* Composant masqué à l'écran, visible uniquement à l'impression/PDF */}
             <ResultatsTableauPrint 
                 sondage={sondage} 
                 statistiques={statistiques} 
@@ -100,7 +99,7 @@ export default function ResultatsSondage() {
             
             <div className="print:hidden animate-fade-in w-full">
                 
-                {/* Bouton Retour en haut de page */}
+                
                 <button 
                     onClick={() => navigate(userRole === 'super_admin' ? '/admin' : '/mes-sondages')} 
                     className="flex items-center gap-2 text-gray-500 hover:text-[#3b82f6] dark:text-gray-400 dark:hover:text-blue-400 font-bold mb-6 transition-colors group w-fit max-w-full"
@@ -111,9 +110,9 @@ export default function ResultatsSondage() {
                     <span className="truncate">Retour {userRole === 'super_admin' ? 'au Centre' : 'aux sondages'}</span>
                 </button>
 
-                {/* En-tête avec flex-col / md:flex-row */}
+                
                 <div className="flex flex-col md:flex-row justify-between items-start mb-8 sm:mb-10 gap-4 sm:gap-6 bg-white dark:bg-carteSombre p-5 sm:p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 w-full overflow-hidden">
-                    {/* min-w-0 est vital ici pour que le flex enfant puisse rétrécir et utiliser break-words */}
+                    
                     <div className="flex-1 w-full min-w-0">
                         <div className="flex flex-wrap items-center gap-3 mb-2 w-full min-w-0">
                             <h1 className="flex-1 min-w-0 text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-tight break-words">
@@ -165,7 +164,6 @@ export default function ResultatsSondage() {
                     ))}
                 </div>
                 
-                {/* Bouton retour du bas */}
                 <div className="mt-10 sm:mt-12 text-center border-t border-gray-200 dark:border-gray-800 pt-8 pb-8 sm:pb-10 w-full">
                     <button 
                         onClick={() => navigate(userRole === 'super_admin' ? '/admin' : '/mes-sondages')} 

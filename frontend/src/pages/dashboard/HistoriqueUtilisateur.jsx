@@ -54,10 +54,10 @@ export default function HistoriqueUtilisateur() {
                 Retour à l'annuaire
             </button>
 
-            {/* EN-TÊTE DU PROFIL */}
+           
             <div className="bg-white dark:bg-carteSombre p-5 sm:p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 mb-8 flex flex-col lg:flex-row items-center lg:items-start justify-between gap-6 lg:gap-8">
                 
-                {/* Infos Utilisateur */}
+               
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 text-center sm:text-left w-full lg:w-auto">
                     <div className={`shrink-0 w-20 h-20 rounded-full flex items-center justify-center text-3xl font-extrabold shadow-sm ${isSuperAdmin ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-blue-100 text-[#3b82f6] dark:bg-blue-900/30 dark:text-blue-400'}`}>
                         {user.name.charAt(0).toUpperCase()}
@@ -77,7 +77,7 @@ export default function HistoriqueUtilisateur() {
                     </div>
                 </div>
                 
-                {/* Badges Statistiques */}
+                
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 w-full lg:w-auto text-center">
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-3 sm:p-4 rounded-xl border border-blue-100 dark:border-blue-800/30">
                         <p className="text-[10px] sm:text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">Sondages</p>
@@ -96,7 +96,7 @@ export default function HistoriqueUtilisateur() {
                 </div>
             </div>
 
-            {/* JOURNAL D'ADMINISTRATION (Visible uniquement si Super Admin) */}
+            
             {isSuperAdmin && (
                 <div className="bg-white dark:bg-carteSombre p-5 sm:p-8 rounded-2xl shadow-xl border border-purple-100 dark:border-purple-900/30 mb-8">
                     <h3 className="text-lg sm:text-xl font-extrabold text-purple-900 dark:text-purple-300 mb-4 sm:mb-6 border-b border-purple-100 dark:border-purple-900/30 pb-3 sm:pb-4 flex items-center gap-2">
@@ -126,7 +126,7 @@ export default function HistoriqueUtilisateur() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
              
-                {/* COLONNE 1 : Sondages Publiés */}
+               
                 <div className="bg-white dark:bg-carteSombre p-5 sm:p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 flex flex-col h-[500px]">
                     <h3 className="text-lg sm:text-xl font-extrabold dark:text-white mb-4 border-b border-gray-100 dark:border-gray-700 pb-3 shrink-0">📝 Sondages publiés</h3>
                     
@@ -142,7 +142,7 @@ export default function HistoriqueUtilisateur() {
                                             {sondage.votes_count || 0} votes récoltés • {new Date(sondage.created_at).toLocaleDateString()}
                                         </p>
                                     </div>
-                                    {/* CORRECTION ICI : Ajout de ?mode=consultation */}
+                                    
                                     <Link to={`/sondage/${sondage.id}?mode=consultation`} className="shrink-0 text-[#3b82f6] hover:bg-blue-50 dark:hover:bg-blue-900/30 p-2 rounded-lg transition-colors" title="Voir le sondage">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
                                     </Link>
@@ -152,7 +152,7 @@ export default function HistoriqueUtilisateur() {
                     </div>
                 </div>
 
-                {/* COLONNE 2 : Historique des participations */}
+               
                 <div className="bg-white dark:bg-carteSombre p-5 sm:p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 flex flex-col h-[500px]">
                     <h3 className="text-lg sm:text-xl font-extrabold dark:text-white mb-4 border-b border-gray-100 dark:border-gray-700 pb-3 shrink-0">🕒 Participations</h3>
                     

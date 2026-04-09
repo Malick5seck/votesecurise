@@ -5,7 +5,6 @@ import Footer from './components/layout/Footer';
 
 import Accueil from './pages/accueil';
 
-// 🔒 CORRECTION POINT 3 : Mise en minuscules des chemins pour correspondre aux vrais fichiers
 import Login from './pages/auth/login';
 import Register from './pages/auth/register';
 import ForgotPassword from './pages/auth/forgotPassword';
@@ -14,7 +13,7 @@ import ResetPassword from './pages/auth/resetPassword';
 import Dashboard from './pages/dashboard/dashboard';
 import HistoriqueUtilisateur from './pages/dashboard/HistoriqueUtilisateur';
 
-// 🔒 CORRECTION POINT 3 : Mise en minuscules des chemins
+
 import ParticiperSondage from './pages/sondage/participerSondage';
 import ResultatsSondage from './pages/sondage/resultatsSondage';
 

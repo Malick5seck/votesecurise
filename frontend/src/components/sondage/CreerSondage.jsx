@@ -65,8 +65,6 @@ export default function CreerSondage({ onSondageCree }) {
     };
 
     return (
-        // 🧹 OPTIMISATION : J'ai remplacé ta longue logique de classe par un simple "animate-fade-in" 
-        // (qui semble déjà exister dans ton projet) ou tu peux ajouter une classe Tailwind standard pour l'animation.
         <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 md:px-8 py-8 text-gray-800 dark:text-gray-200 overflow-x-hidden animate-fade-in">
             <div className="mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1 break-words">Créer un sondage</h2>
@@ -87,7 +85,7 @@ export default function CreerSondage({ onSondageCree }) {
                         <textarea rows="3" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Décrivez votre sondage..." className="w-full p-2.5 bg-gray-50/50 dark:bg-fondSombre border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-y dark:text-white"></textarea>
                     </div>
                     
-                    {/* Grille responsive pour les paramètres */}
+                   
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-4 items-start md:items-end">
                         <div className="w-full">
                             <label className="block text-sm font-semibold mb-2">Date d'expiration</label>

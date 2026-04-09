@@ -56,14 +56,12 @@ export default function Navbar() {
                 
                 <div className="flex justify-between items-center h-16 w-full">
                     
-                    {/* TITRE ALIGNÉ À GAUCHE */}
                     <div className="flex-shrink-0 flex items-center">
                         <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="font-bold text-xl sm:text-2xl tracking-wide flex items-center gap-2 whitespace-nowrap">
                             VotePulse
                         </Link>
                     </div>
                     
-                    {/* NAVIGATION ET ACTIONS ALIGNÉES À DROITE */}
                     <div className="flex items-center gap-4 lg:gap-6">
                         
                         {estConnecte ? (
@@ -81,9 +79,6 @@ export default function Navbar() {
                                 )}
                             </nav>
                         ) : (
-                            // ==========================================
-                            // 🌟 NOUVEAU BOUTON "SE CONNECTER" AMÉLIORÉ
-                            // ==========================================
                             <Link 
                                 to="/login" 
                                 className="flex items-center gap-2 px-5 py-2 bg-white text-[#3b82f6] hover:bg-blue-50 dark:bg-gray-800 dark:text-blue-400 dark:hover:bg-gray-700 font-bold rounded-xl transition-all shadow-sm transform hover:-translate-y-0.5 whitespace-nowrap"
@@ -97,7 +92,6 @@ export default function Navbar() {
 
                         <div className="flex items-center gap-3">
                             
-                            {/* BOUTON MODE SOMBRE */}
                             <button 
                                 onClick={() => setIsDarkMode(!isDarkMode)} 
                                 className="p-2 bg-blue-600 hover:bg-blue-700 dark:bg-gray-800 dark:hover:bg-gray-700 text-white rounded-full shadow transition-transform transform hover:scale-110 focus:outline-none flex-shrink-0"

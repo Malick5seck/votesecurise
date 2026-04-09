@@ -9,7 +9,6 @@ export default function QuestionSondage({ q, index, reponses, handleTextChange, 
                 {q.obligatoire && <span className="text-red-500 ml-1 text-xl shrink-0" title="Cette question est obligatoire">*</span>}
             </h3>
 
-            {/* CHOIX UNIQUE (Radio) */}
             {['qcm', 'boolean', 'likert'].includes(q.type) && (
                 <div className="space-y-3 w-full">
                     {q.options.map(opt => (
@@ -19,18 +18,16 @@ export default function QuestionSondage({ q, index, reponses, handleTextChange, 
                                 name={`q_${q.id}`} 
                                 required={q.obligatoire}
                                 onChange={() => handleRadioChange(q.id, opt.id)}
-                                // shrink-0 empêche le bouton de s'écraser si le texte est très long
-                                // mt-0.5 ou mt-1 permet de l'aligner avec la première ligne de texte
+                                
                                 className="mt-0.5 w-5 h-5 shrink-0 text-blue-600 focus:ring-blue-500 border-gray-300 transition-transform group-hover:scale-110 cursor-pointer"
                             />
-                            {/* flex-1, min-w-0 et break-words sécurisent les textes à rallonge */}
+                           
                             <span className="flex-1 min-w-0 text-gray-800 dark:text-gray-200 leading-relaxed break-words">{opt.contenu}</span>
                         </label>
                     ))}
                 </div>
             )}
 
-            {/* CHOIX MULTIPLE (Checkbox) */}
             {q.type === 'checkbox' && (
                 <div className="space-y-3 w-full">
                     {q.options.map(opt => (
@@ -46,7 +43,6 @@ export default function QuestionSondage({ q, index, reponses, handleTextChange, 
                 </div>
             )}
 
-            {/* TEXTE LIBRE */}
             {q.type === 'text' && (
                 <textarea 
                     required={q.obligatoire} 
@@ -57,7 +53,6 @@ export default function QuestionSondage({ q, index, reponses, handleTextChange, 
                 ></textarea>
             )}
 
-            {/* DATE */}
             {q.type === 'date' && (
                 <input 
                     type="date" 
@@ -67,7 +62,6 @@ export default function QuestionSondage({ q, index, reponses, handleTextChange, 
                 />
             )}
 
-            {/* NUMÉRIQUE */}
             {q.type === 'number' && (
                 <input 
                     type="number" 
@@ -78,7 +72,7 @@ export default function QuestionSondage({ q, index, reponses, handleTextChange, 
                 />
             )}
 
-            {/* SLIDER */}
+
             {q.type === 'slider' && (
                 <div className="flex flex-col sm:flex-row items-center gap-4 bg-white dark:bg-carteSombre p-4 sm:p-5 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm w-full">
                     <input 
@@ -92,7 +86,7 @@ export default function QuestionSondage({ q, index, reponses, handleTextChange, 
                 </div>
             )}
 
-            {/* RATING (Étoiles) */}
+
             {q.type === 'rating' && (
                 <div className="flex flex-wrap gap-2 text-4xl sm:text-5xl justify-center sm:justify-start py-2">
                     {[1, 2, 3, 4, 5].map(star => (
@@ -108,7 +102,7 @@ export default function QuestionSondage({ q, index, reponses, handleTextChange, 
                 </div>
             )}
 
-            {/* TYPES AVANCÉS (Ranking, Matrix) */}
+
             {['ranking', 'matrix', 'condition'].includes(q.type) && (
                 <div className="space-y-3 w-full">
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 italic break-words">

@@ -1,5 +1,4 @@
-import { Link } from 'react-router-dom';
-
+import React from 'react';
 /**
  * Composant unifié pour afficher une carte de sondage
  * @param {Object} props
@@ -9,7 +8,6 @@ import { Link } from 'react-router-dom';
  */
 export default function SondageCard({ sondage, onClick, estRestreint = false }) {
     
-    // Logique pour afficher le badge "Nouveau" (moins de 3 jours)
     const estNouveau = (dateCreation) => {
         const diffTemps = new Date() - new Date(dateCreation);
         const diffJours = diffTemps / (1000 * 3600 * 24);
@@ -24,14 +22,11 @@ export default function SondageCard({ sondage, onClick, estRestreint = false }) 
             onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') onClick(sondage.id);
             }}
-            // Ajout de w-full pour prendre parfaitement la place de la grille parente
             className="group w-full bg-white dark:bg-carteSombre rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 dark:border-gray-700 hover:border-[#3b82f6]/30 dark:hover:border-blue-500/50 transition-all duration-300 transform hover:-translate-y-1 sm:hover:-translate-y-1.5 cursor-pointer flex flex-col justify-between overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-[#3b82f6]"
         >
-            {/* Ligne de couleur au sommet de la carte */}
             <div className={`h-1.5 w-full bg-gradient-to-r opacity-0 group-hover:opacity-100 transition-opacity ${estRestreint ? 'from-amber-400 to-[#3b82f6]' : 'from-blue-400 to-[#3b82f6]'}`}></div>
             
             <div className="p-5 sm:p-7 flex flex-col flex-1 min-w-0">
-                {/* En-tête de la carte : Badges (Public, Nouveau, Restreint) */}
                 <div className="flex flex-wrap items-start justify-between gap-2 mb-4 w-full">
                     <div className="flex flex-wrap gap-2 min-w-0">
                         {estRestreint ? (
@@ -55,7 +50,7 @@ export default function SondageCard({ sondage, onClick, estRestreint = false }) 
                     )}
                 </div>
 
-                {/* Titre et Description - Ajout de break-words pour empêcher les longs mots sans espace de déborder */}
+               
                 <h3 className="text-lg sm:text-xl font-extrabold text-gray-900 dark:text-white mb-2 sm:mb-3 group-hover:text-[#3b82f6] dark:group-hover:text-blue-400 transition-colors line-clamp-2 leading-tight break-words">
                     {sondage.titre}
                 </h3>
@@ -64,7 +59,7 @@ export default function SondageCard({ sondage, onClick, estRestreint = false }) 
                 </p>
             </div>
 
-            {/* Pied de carte : Métadonnées (Questions, Votes, Date) */}
+            
             <div className="px-5 sm:px-7 py-4 sm:py-5 bg-gray-50/50 dark:bg-fondSombre border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mt-auto w-full overflow-hidden">
                 <div className="flex flex-wrap items-center gap-3 sm:gap-4 min-w-0 w-full sm:w-auto flex-1">
                     {sondage.questions && (
@@ -83,7 +78,7 @@ export default function SondageCard({ sondage, onClick, estRestreint = false }) 
                     </span>
                 </div>
                 
-                {/* Affichage adaptatif de la date */}
+                
                 <span className="flex items-center gap-1.5 text-left shrink-0 min-w-0 max-w-full">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 shrink-0">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />

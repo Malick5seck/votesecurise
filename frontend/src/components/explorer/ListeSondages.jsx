@@ -16,11 +16,8 @@ export default function ListeSondages({ variant = 'default' }) {
     useEffect(() => {
         const fetchSondages = async () => {
             try {
-                // ⚡ OPTIMISATION 3 : On demande uniquement les sondages actifs ! 
-                // Le serveur SQL a DÉJÀ retiré les sondages expirés, privés, ou pas encore commencés.
                 const reponse = await api.get('/sondages?actifs_seulement=true');
                 
-                // Plus besoin de filtrer en Javascript, les données sont déjà prêtes !
                 let sondagesActifs = reponse.data;
 
                 if (variant === 'accueil') {
@@ -59,7 +56,6 @@ export default function ListeSondages({ variant = 'default' }) {
         window.scrollTo({ top: positionY, behavior: 'smooth' });
     }, [pageActuelle, variant]);
 
-    // État de chargement : sécurisé sur mobile (break-words, w-full)
     if (chargement) return (
         <div className="flex flex-col items-center justify-center py-12 sm:py-20 animate-fade-in px-4 text-center w-full max-w-full">
             <div className="w-10 h-10 sm:w-12 sm:h-12 border-4 border-blue-200 border-t-[#3b82f6] rounded-full animate-spin mb-4 shrink-0"></div>
@@ -67,7 +63,6 @@ export default function ListeSondages({ variant = 'default' }) {
         </div>
     );
 
-    // État vide : sécurisé sur mobile
     if (sondages.length === 0) return (
         <div className="text-center py-12 sm:py-20 animate-fade-in px-4 w-full max-w-full overflow-hidden">
             <div className="text-5xl sm:text-6xl mb-4 text-gray-300 dark:text-gray-600 shrink-0">📭</div>
@@ -85,10 +80,8 @@ export default function ListeSondages({ variant = 'default' }) {
     const totalPages = Math.ceil(sondages.length / sondagesParPage);
 
     return (
-        // Conteneur principal de la liste
         <div ref={listeRef} className="w-full max-w-full space-y-8 sm:space-y-10 animate-fade-in px-0">
             
-            {/* Grille responsive : 1 colonne mobile, 2 tablettes, 3 ordinateurs */}
             <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
                 {sondagesAffiches.map(sondage => (
                     <div key={sondage.id} className="w-full min-w-0">

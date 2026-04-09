@@ -54,7 +54,7 @@ export default function Register() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-fondSombre py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
-            {/* 🔥 RESPONSIVE : p-6 sur très petits écrans, p-8 sm, p-10 md */}
+           
             <div className="max-w-md w-full bg-white dark:bg-carteSombre p-6 sm:p-8 md:p-10 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 animate-fade-in">
                 
                 <div className="text-center mb-8 sm:mb-10">

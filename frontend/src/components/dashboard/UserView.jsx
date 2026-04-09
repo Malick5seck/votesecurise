@@ -88,11 +88,6 @@ export default function UserView({
                                         </p>
                                     </div>
                                     
-                                    {/* CORRECTION : Alignement absolu des boutons 
-                                        - flex, flex-wrap et items-center sur le parent
-                                        - h-9 (mobile) et h-10 (desktop) pour forcer une hauteur identique
-                                        - inline-flex items-center justify-center pour centrer le contenu
-                                    */}
                                     <div className="flex flex-wrap items-center justify-start lg:justify-end gap-2 sm:gap-3 w-full lg:w-auto mt-3 lg:mt-0 shrink-0">
                                         <button 
                                             onClick={() => handlePartager(sondage.id)} 

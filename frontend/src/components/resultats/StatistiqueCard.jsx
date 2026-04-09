@@ -6,10 +6,8 @@ export default function StatistiqueCard({ stat, index, couleursTheme }) {
     const utiliserBarres = ['checkbox', 'likert'].includes(stat.type);
 
     return (
-        // break-inside-avoid empêche la carte d'être coupée en deux lors de l'impression PDF
         <div className="bg-white dark:bg-carteSombre p-4 sm:p-5 md:p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 animate-fade-in break-inside-avoid w-full overflow-hidden">
             
-            {/* L'EN TÊTE DE LA CARTE */}
             <div className="flex flex-col sm:flex-row sm:justify-between items-start gap-3 md:gap-4 mb-6 md:mb-8 w-full">
                 <div className="w-full min-w-0 flex-1">
                     <h3 className="text-lg md:text-xl font-medium text-gray-900 dark:text-white leading-tight md:leading-relaxed break-words">
@@ -30,11 +28,8 @@ export default function StatistiqueCard({ stat, index, couleursTheme }) {
                 )}
             </div>
 
-            {/* GRAPHIQUE 1 : Camembert (PieChart) pour QCM et Oui/Non */}
             {utiliserCamembert && stat.options && stat.options.length > 0 && (
-                // 🔒 CORRECTION ICI : h-72 md:h-80 et min-h-[250px] pour forcer la hauteur dès le chargement
                 <div className="h-72 md:h-80 min-h-[250px] flex justify-center mt-2 w-full">
-                    {/* 🔒 AJOUT minHeight={250} pour rassurer Recharts */}
                     <ResponsiveContainer width="100%" height="100%" minHeight={250}>
                         <PieChart>
                             <Pie 
@@ -61,11 +56,8 @@ export default function StatistiqueCard({ stat, index, couleursTheme }) {
                 </div>
             )}
 
-            {/* GRAPHIQUE 2 : Barres (BarChart) pour Choix Multiples et Likert */}
             {utiliserBarres && stat.options && stat.options.length > 0 && (
-                // 🔒 CORRECTION ICI : h-72 md:h-80 et min-h-[250px]
                 <div className="h-72 md:h-80 min-h-[250px] mt-4 md:mt-2 -ml-6 sm:-ml-4 md:ml-0 w-full">
-                    {/* 🔒 AJOUT minHeight={250} pour rassurer Recharts */}
                     <ResponsiveContainer width="100%" height="100%" minHeight={250}>
                         <BarChart data={stat.options} margin={{ top: 10, right: 10, left: window.innerWidth < 768 ? -25 : -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" opacity={0.5} />
@@ -100,7 +92,6 @@ export default function StatistiqueCard({ stat, index, couleursTheme }) {
                 </div>
             )}
 
-            {/* LISTE : Textes simples (Ranking, Matrix...) */}
             {!utiliserCamembert && !utiliserBarres && stat.options && stat.options.length > 0 && (
                 <div className="mt-4 grid gap-2 md:gap-3 grid-cols-1 sm:grid-cols-2 w-full">
                     {stat.options.map((opt, i) => (
@@ -118,7 +109,6 @@ export default function StatistiqueCard({ stat, index, couleursTheme }) {
                 </div>
             )}
 
-            {/* MOYENNES : (Slider, Note) */}
             {stat.moyenne !== undefined && (
                 <div className="flex items-center gap-3 sm:gap-4 bg-gradient-to-r from-blue-50 to-white dark:from-gray-800 dark:to-fondSombre p-4 sm:p-5 md:p-6 rounded-xl border border-blue-100 dark:border-gray-700 mt-6 shadow-sm w-full">
                     <div className="text-2xl sm:text-3xl md:text-4xl bg-white dark:bg-gray-700 p-2.5 sm:p-3 rounded-full shadow-sm shrink-0">
@@ -133,7 +123,6 @@ export default function StatistiqueCard({ stat, index, couleursTheme }) {
                 </div>
             )}
 
-            {/* RÉPONSES TEXTES : (Texte libre) */}
             {stat.reponses_textes && (
                 <div className="mt-6 border-t border-gray-100 dark:border-gray-800 pt-6 w-full">
                     {stat.reponses_textes.length === 0 ? (

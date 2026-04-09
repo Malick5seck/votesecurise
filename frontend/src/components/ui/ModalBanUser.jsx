@@ -16,17 +16,13 @@ export default function ModalBanUser({
         onCancel();
     };
 
-    // Vérifie si on est en mode personnalisé
     const isCustom = durationPreset === 'custom';
     
-    // Détermine le nombre de jours actifs
     const activeDays = isCustom ? parseInt(customDays, 10) : parseInt(durationPreset, 10);
 
-    // Validation : Le bouton est cliquable SI le motif est rempli ET (c'est permanent OU les jours > 0)
     const canSubmit = motifValue?.trim() && 
         (durationPreset === 'permanent' || (!isNaN(activeDays) && activeDays > 0));
 
-    // Calcul automatique de la date de fin pour rassurer l'administrateur
     const dateFinEstimee = useMemo(() => {
         if (durationPreset === 'permanent') return 'Suspension définitive (à vie)';
         if (!isNaN(activeDays) && activeDays > 0) {
@@ -39,7 +35,6 @@ export default function ModalBanUser({
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
-            {/* 🔥 RESPONSIVE : max-w-md w-full avec p-6 sur mobile et p-8 sur PC */}
             <div className="bg-white dark:bg-carteSombre p-6 md:p-8 rounded-2xl shadow-2xl max-w-md w-full border border-gray-100 dark:border-gray-700 text-left">
                 <div className="w-14 h-14 sm:w-16 sm:h-16 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl sm:text-3xl shadow-sm">
                     ⚠️
@@ -73,7 +68,6 @@ export default function ModalBanUser({
                         </select>
                     </div>
 
-                    {/* Affichage conditionnel du champ personnalisé */}
                     {isCustom && (
                         <div className="animate-fade-in">
                             <label className="block text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">
@@ -91,7 +85,6 @@ export default function ModalBanUser({
                         </div>
                     )}
 
-                    {/* Aperçu de la date de fin */}
                     <div className="bg-red-50 dark:bg-red-900/10 p-3 rounded-lg border border-red-100 dark:border-red-800/30">
                         <p className="text-[11px] sm:text-xs font-medium text-red-800 dark:text-red-300 text-center flex items-center justify-center gap-1.5">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>

@@ -4,7 +4,6 @@
 
 @layer base {
 
-  /* 🔥 GESTION GLOBALE DE L'ÉCHELLE (ZOOM) ET DU SCROLL 🔥 */
   html {
     font-size: 16px; 
     scroll-behavior: smooth; /* Permet un défilement fluide vers le bas de page */
@@ -22,25 +21,21 @@
     }
   }
 
-  /* Style par défaut (Mode Clair) avec une transition douce */
   body {
     @apply bg-fond text-gray-900 transition-colors duration-500 ease-in-out;
   }
   
-  /* Basculement automatique pour TOUTES les pages (Mode Sombre) */
   .dark body {
     @apply bg-fondSombre text-gray-100;
   }
 }
 
 @layer components {
-  /* Séparateur horizontal pour structurer les différentes sections */
   .separateur-page {
     @apply w-full h-px bg-gray-300 dark:bg-gray-700 my-8;
   }
 }
 
-/* --- REGLES D'IMPRESSION (EXPORT PDF) --- */
 @media print {
     header, footer {
         display: none !important;

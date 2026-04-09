@@ -39,21 +39,17 @@ export default function AdminView({
     const sExpires = safeSondages.length - sActifs;
     const topS = [...safeSondages].sort((a, b) => (b.votes_count || 0) - (a.votes_count || 0)).slice(0, 5);
 
-    // ⚡ Le TRI PAR NOMBRE DE SONDAGES EST APPLIQUÉ ICI :
     const utilisateursFiltres = safeUsers.filter(u => 
         (u?.name || '').toLowerCase().includes(rechercheUtilisateur.toLowerCase()) || 
         (u?.email || '').toLowerCase().includes(rechercheUtilisateur.toLowerCase())
     ).sort((a, b) => {
-        // 1. On calcule le vrai nombre de sondages pour chaque utilisateur
         const nbSondagesA = safeSondages.filter(s => String(s.user_id) === String(a.id)).length;
         const nbSondagesB = safeSondages.filter(s => String(s.user_id) === String(b.id)).length;
         
-        // 2. On trie du plus grand au plus petit
         if (nbSondagesB !== nbSondagesA) {
             return nbSondagesB - nbSondagesA;
         }
         
-        // 3. En cas d'égalité, on trie par date d'inscription la plus récente
         return new Date(b.created_at) - new Date(a.created_at);
     });
 
@@ -116,7 +112,6 @@ export default function AdminView({
                     {adminOngletActif === 'dashboard' && (
                         <div className="space-y-6 sm:space-y-8 w-full">
                             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
-                                {/* Modification : Ajout de min-w-0 et truncate pour sécuriser les textes/chiffres longs */}
                                 <div className="bg-white dark:bg-carteSombre p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-start justify-between transform transition-all hover:scale-105 duration-300">
                                     <div className="min-w-0 mr-2"><p className="text-xs sm:text-sm font-bold uppercase text-gray-500 mb-1 truncate">Utilisateurs</p><p className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white truncate">{safeUsers.length}</p></div>
                                     <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-full text-[#3b82f6] dark:text-blue-400 shrink-0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg></div>
@@ -145,7 +140,7 @@ export default function AdminView({
                                                 <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
                                                     <span className={`text-xl sm:text-2xl font-bold shrink-0 ${index === 0 ? 'text-yellow-500' : index === 1 ? 'text-gray-400' : 'text-gray-300 dark:text-gray-600'}`}>#{index + 1}</span>
                                                     <div className="min-w-0 flex-1">
-                                                        {/* Ajout flex-1 et min-w-0 pour sécuriser le line-clamp */}
+                                                        
                                                         <p className="font-bold text-gray-900 dark:text-white text-sm sm:text-base line-clamp-1 break-words">{s.titre}</p>
                                                         <p className="text-xs sm:text-sm text-gray-500 truncate">Par {auteur} • Créé le {new Date(s.created_at).toLocaleDateString()}</p>
                                                     </div>
@@ -161,7 +156,7 @@ export default function AdminView({
                         </div>
                     )}
 
-                    {/* ONGLET UTILISATEURS */}
+                    {/* UTILISATEURS */}
                     {adminOngletActif === 'utilisateurs' && (
                         <div className="bg-white dark:bg-carteSombre rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden w-full">
                             <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
@@ -241,7 +236,7 @@ export default function AdminView({
                         </div>
                     )}
 
-                    {/* ONGLET : SONDAGES */}
+                    {/*  SONDAGES */}
                     {adminOngletActif === 'sondages' && (
                         <div className="bg-white dark:bg-carteSombre rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden w-full">
                             <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
@@ -321,7 +316,6 @@ export default function AdminView({
                                                 {log.action === 'ban' ? '🔨' : log.action === 'cloture' ? '🔒' : '🗑️'}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                {/* Ajout de break-words pour éviter que les longs logs ne cassent l'écran */}
                                                 <p className="font-bold text-gray-900 dark:text-white text-sm sm:text-base leading-snug break-words">{log.description}</p>
                                                 <p className="text-xs sm:text-sm text-gray-500 mt-1 flex items-center gap-1.5 whitespace-nowrap">
                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3 sm:w-4 sm:h-4 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -335,7 +329,7 @@ export default function AdminView({
                         </div>
                     )}
 
-                    {/* ONGLET : PROFIL ADMINISTRATEUR */}
+                    {/*  PROFIL ADMINISTRATEUR */}
                     {adminOngletActif === 'profil' && (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 w-full">
                             <div className="bg-white dark:bg-carteSombre p-5 sm:p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 w-full">

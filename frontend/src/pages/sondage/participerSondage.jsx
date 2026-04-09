@@ -8,7 +8,7 @@ export default function ParticiperSondage() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // 1. Initialisation des états
+    
     const [sondage, setSondage] = useState(null);
     const [chargement, setChargement] = useState(true);
     const [erreur, setErreur] = useState('');
@@ -21,7 +21,7 @@ export default function ParticiperSondage() {
     const [reponses, setReponses] = useState({});
     const [voterAnonymement, setVoterAnonymement] = useState(false);
 
-    // 2. Détection de l'utilisateur
+
     const userString = localStorage.getItem('user');
     let currentUser = null;
     
@@ -33,19 +33,17 @@ export default function ParticiperSondage() {
         }
     }
 
-    // ⚡ VÉRIFICATION DU RÔLE ADMIN
     const estAdmin = currentUser?.role === 'super_admin';
 
     const queryParams = new URLSearchParams(location.search);
     const isModeConsultation = queryParams.get('mode') === 'consultation';
     
-    // 🔒 L'admin est TOUJOURS en mode lecture seule s'il force l'aperçu d'un sondage expiré
+    
     const isReadOnly = isModeConsultation || estAdmin;
 
-    // 3. Déclaration de l'expiration
+  
     const estExpire = sondage?.date_fin ? new Date(sondage.date_fin) < new Date() : false;
 
-    // 4. Chargement des données
     useEffect(() => {
         setContexteRefus('eligibilite');
         const fetchSondage = async () => {
@@ -55,7 +53,6 @@ export default function ParticiperSondage() {
                 
                 let utilisateurAutorise = true;
 
-                // ⚡ L'admin a le droit de TOUT voir, peu importe les restrictions d'emails
                 if (isReadOnly || estAdmin) {
                     utilisateurAutorise = true;
                 } else if (donneesSondage.domaine_restreint || (donneesSondage.emails_autorises && donneesSondage.emails_autorises.length > 0)) {
@@ -163,9 +160,7 @@ export default function ParticiperSondage() {
                 est_anonyme: voterAnonymement 
             });
             
-            // ⚡ LE SIGNAL MAGIQUE EST ICI :
-            // On dit au navigateur de se souvenir qu'un vote a été fait
-            // Le Dashboard.jsx verra ce message et videra sa mémoire !
+           
             sessionStorage.setItem('rafraichirCache', 'oui');
             
             setVoteReussi(true);
@@ -176,7 +171,6 @@ export default function ParticiperSondage() {
         }
     };
 
-    // 6. Rendu des écrans de chargement et d'erreur
     if (chargement) return <div className="text-center py-20 text-gray-500 text-lg flex flex-col items-center justify-center animate-fade-in w-full max-w-full px-4"><div className="w-12 h-12 border-4 border-blue-200 border-t-[#3b82f6] rounded-full animate-spin mb-4 shrink-0"></div><span className="break-words">Chargement du sondage...</span></div>;
     
     if (erreur) return <div className="text-center py-20 text-red-500 text-lg font-bold w-full max-w-full px-4 break-words">{erreur}</div>;
@@ -249,7 +243,6 @@ export default function ParticiperSondage() {
         </div>
     );
 
-    // 7. Rendu principal
     return (
         <div className="w-full max-w-3xl mx-auto py-6 sm:py-10 px-4 transition-colors duration-300 animate-fade-in overflow-x-hidden">
             

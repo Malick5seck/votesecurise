@@ -6,18 +6,16 @@ import AdminView from '../../components/dashboard/AdminView';
 import UserView from '../../components/dashboard/UserView';
 import ModalBanUser from '../../components/ui/ModalBanUser';
 
-// ⚡ RESTAURATION DU CACHE : C'est ce qui rend l'application ultra-rapide (0 ms de latence réseau)
+
 let memoireUser = null;
 let memoireAdmin = null;
 
-// ⚡ EXTRACTEUR INTELLIGENT : Trouve le tableau de données peu importe le format envoyé par Laravel
 const extraireTableau = (reponseAPI) => {
     const data = reponseAPI?.data;
     if (!data) return [];
-    if (Array.isArray(data)) return data; // Si c'est un tableau direct (comme les Users)
-    if (Array.isArray(data.data)) return data.data; // Si c'est une pagination classique
-    
-    // Si Laravel l'a emballé dans un nom personnalisé (ex: { sondages: [...] })
+    if (Array.isArray(data)) return data; 
+    if (Array.isArray(data.data)) return data.data; 
+
     const valeurs = Object.values(data);
     for (let val of valeurs) {
         if (Array.isArray(val)) return val;
@@ -117,16 +115,15 @@ export default function Dashboard() {
 
         if (memoireUser && memoireUser.userId !== userId) memoireUser = null;
 
-        // ⚡ 1. AFFICHAGE INSTANTANÉ (On charge le cache)
         if (memoireUser) {
             setMesSondages(memoireUser.sondages);
             setHistoriqueVotes(memoireUser.votes);
             setTousLesSondages(memoireUser.tous); 
             setDonneesChargees(true);
-            // ❌ ON NE MET PLUS DE "return;" ICI ! On laisse la fonction continuer.
+           
         }
         
-        // ⚡ 2. VÉRIFICATION EN ARRIÈRE-PLAN
+       
         try {
             const [resSondages, resVotes] = await Promise.all([
                 api.get('/sondages'),
@@ -137,7 +134,7 @@ export default function Dashboard() {
             const dataSondages = extraireTableau(resSondages);
             const sondagesFiltres = dataSondages.filter(s => String(s.user_id) === userIdString);
             
-            // On met à jour l'écran silencieusement avec les données fraîches
+        
             setMesSondages(sondagesFiltres); 
             setHistoriqueVotes(extraireTableau(resVotes));
             setTousLesSondages(dataSondages); 
@@ -160,16 +157,16 @@ export default function Dashboard() {
 
         if (memoireAdmin && memoireAdmin.userId !== userId) memoireAdmin = null;
 
-        // ⚡ 1. AFFICHAGE INSTANTANÉ
+        
         if (memoireAdmin) {
             setTousLesUtilisateurs(memoireAdmin.users);
             setTousLesSondages(memoireAdmin.sondages);
             setAdminLogs(memoireAdmin.logs);
             setDonneesChargees(true);
-            // ❌ PLUS DE "return;" ICI NON PLUS
+            
         }
 
-        // ⚡ 2. VÉRIFICATION EN ARRIÈRE-PLAN
+        
         try {
             const [resUsers, resSondages, resLogs] = await Promise.all([
                 api.get('/users'), 
@@ -181,7 +178,7 @@ export default function Dashboard() {
             const dSondages = extraireTableau(resSondages);
             const dLogs = extraireTableau(resLogs);
 
-            // Mise à jour silencieuse
+            
             setTousLesUtilisateurs(dUsers);
             setTousLesSondages(dSondages);
             setAdminLogs(dLogs);

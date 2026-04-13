@@ -6,13 +6,12 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
-use App\Mail\AdminNotificationMail; // ⚡ Ajout pour les emails
-use Illuminate\Support\Facades\Mail; // ⚡ Ajout pour les emails
-use Illuminate\Support\Facades\Log; // ⚡ Ajout pour les logs
+use App\Mail\AdminNotificationMail; 
+use Illuminate\Support\Facades\Mail; 
+use Illuminate\Support\Facades\Log; 
 
 class UserController extends Controller
 {
-    // ⚡ OPTIMISATION 1 : Lean Payload (Colonnes ciblées) + withCount côté SQL
     public function index()
     {
         $users = User::select('id', 'name', 'email', 'role', 'ban_started_at', 'ban_until', 'created_at')
@@ -77,7 +76,6 @@ class UserController extends Controller
                 'updated_at' => now(),
             ]);
 
-            // 📩 ENVOI D'EMAIL (Silent Fail)
             try {
                 Mail::to($userToSuspend->email)->send(new AdminNotificationMail('ban', [
                     'name' => $userToSuspend->name,
@@ -132,13 +130,12 @@ class UserController extends Controller
         return response()->json(['message' => 'Mot de passe modifié avec succès.']);
     }
 
-    // ⚡ OPTIMISATION 2 : Limites strictes sur les historiques pour protéger la RAM (take 100)
     public function historiqueUtilisateur($id)
     {
         $user = User::findOrFail($id);
 
         $sondagesCrees = \App\Models\Sondage::where('user_id', $id)
-            ->withCount('votes', 'questions') // Ajout du count des questions pour un aperçu rapide
+            ->withCount('votes', 'questions') 
             ->latest()
             ->take(100)
             ->get();
@@ -166,7 +163,6 @@ class UserController extends Controller
         ]);
     }
 
-    // ⚡ OPTIMISATION 3 : Limite de sécurité globale sur les logs
     public function getAdminLogs(Request $request)
     {
         if ($request->user()->role !== 'super_admin') {

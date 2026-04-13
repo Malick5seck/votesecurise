@@ -1,7 +1,5 @@
-# docker-compose.yml
 
 services:
-  # 1. LA BASE DE DONNÉES MYSQL
   db:
     image: mysql:8.0
     container_name: vote_db
@@ -14,7 +12,6 @@ services:
     volumes:
       - db_data:/var/lib/mysql
 
-  # 2. L'API LARAVEL
   backend:
     build:
       context: ./backend
@@ -30,7 +27,6 @@ services:
       DB_USERNAME: root
       DB_PASSWORD: root
       QUEUE_CONNECTION: database
-      # ⚡ LES 4 LIGNES POUR RÉGLER L'ERREUR CORS SONT ICI :
       APP_URL: http://localhost:8000
       FRONTEND_URL: http://localhost
       SANCTUM_STATEFUL_DOMAINS: localhost,127.0.0.1
@@ -38,7 +34,6 @@ services:
     depends_on:
       - db
 
-  # 3. LE TRAVAILLEUR DE L'OMBRE (Pour les emails asynchrones)
   queue_worker:
     build:
       context: ./backend
@@ -57,7 +52,6 @@ services:
       - backend
       - db
 
-  # 4. L'INTERFACE REACT
   frontend:
     build:
       context: ./frontend

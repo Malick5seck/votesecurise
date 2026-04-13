@@ -197,7 +197,6 @@ export default function ParticiperSondage() {
         </div>
     );
 
-    // ⚡ MODIFICATION : On bloque l'affichage de l'erreur "Expiré" SI c'est un administrateur
     if (estExpire && !isReadOnly && !estAdmin) return (
         <div className="w-full max-w-2xl mx-auto py-12 sm:py-20 px-4 text-center transition-colors duration-300 animate-fade-in overflow-hidden">
             <div className="bg-red-50 dark:bg-red-900/20 p-6 sm:p-10 rounded-2xl shadow-lg border border-red-200 dark:border-red-800 w-full">

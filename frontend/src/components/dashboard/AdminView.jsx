@@ -84,7 +84,6 @@ export default function AdminView({
                 <h1 className="text-2xl sm:text-3xl font-extrabold dark:text-white truncate"> Centre de Contrôle</h1>
             </div>
             
-            {/* Barre d'onglets défilante */}
             <div className="flex overflow-x-auto gap-2 mb-6 sm:mb-8 bg-gray-100/50 dark:bg-gray-800/30 p-2 rounded-xl custom-scrollbar animate-fade-in">
                 {['dashboard', 'utilisateurs', 'sondages', 'historique', 'profil'].map(onglet => (
                     <button 
@@ -156,7 +155,6 @@ export default function AdminView({
                         </div>
                     )}
 
-                    {/* UTILISATEURS */}
                     {adminOngletActif === 'utilisateurs' && (
                         <div className="bg-white dark:bg-carteSombre rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden w-full">
                             <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
@@ -176,7 +174,6 @@ export default function AdminView({
                                 </div>
                             </div>
                             <div className="overflow-x-auto w-full">
-                                {/* min-w garanti que le tableau ne s'écrase pas, overflow-x gère le défilement horizontal fluide */}
                                 <table className="w-full text-left min-w-[650px]">
                                     <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs uppercase whitespace-nowrap">
                                         <tr><th className="p-3 sm:p-4">Utilisateur</th><th className="p-3 sm:p-4">Inscription</th><th className="p-3 sm:p-4">Rôle</th><th className="p-3 sm:p-4 text-center">Sondages</th><th className="p-3 sm:p-4 text-right">Actions</th></tr>
@@ -236,7 +233,6 @@ export default function AdminView({
                         </div>
                     )}
 
-                    {/*  SONDAGES */}
                     {adminOngletActif === 'sondages' && (
                         <div className="bg-white dark:bg-carteSombre rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden w-full">
                             <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
@@ -297,7 +293,6 @@ export default function AdminView({
                         </div>
                     )}
 
-                    {/* ONGLET HISTORIQUE */}
                     {adminOngletActif === 'historique' && (
                         <div className="bg-white dark:bg-carteSombre p-4 sm:p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 w-full overflow-hidden">
                             <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 dark:text-white flex items-center gap-3 truncate">
@@ -329,7 +324,6 @@ export default function AdminView({
                         </div>
                     )}
 
-                    {/*  PROFIL ADMINISTRATEUR */}
                     {adminOngletActif === 'profil' && (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 w-full">
                             <div className="bg-white dark:bg-carteSombre p-5 sm:p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 w-full">

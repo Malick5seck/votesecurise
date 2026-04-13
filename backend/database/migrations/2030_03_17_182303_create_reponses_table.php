@@ -13,10 +13,8 @@ return new class extends Migration
             $table->foreignId('vote_id')->constrained('votes')->cascadeOnDelete();
             $table->foreignId('question_id')->constrained('questions')->cascadeOnDelete();
             
-            // L'ID de l'option choisie (pour QCM, Cases à cocher, etc.)
             $table->foreignId('option_id')->nullable()->constrained('options')->cascadeOnDelete(); 
             
-            // Le texte saisi (pour Texte libre, Note, etc.)
             $table->text('valeur_texte')->nullable(); 
             
             $table->timestamps();

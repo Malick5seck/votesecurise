@@ -12,10 +12,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('sondage_id')->constrained('sondages')->cascadeOnDelete();
-            $table->string('adresse_ip')->nullable(); // Ton excellente idée conservée !
+            $table->string('adresse_ip')->nullable(); 
             $table->timestamps();
 
-            // LE VERROU DE SÉCURITÉ : Empêche le double vote 
             $table->unique(['user_id', 'sondage_id']);
         });
     }

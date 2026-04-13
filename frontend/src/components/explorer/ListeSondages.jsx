@@ -94,7 +94,6 @@ export default function ListeSondages({ variant = 'default' }) {
                 ))}
             </div>
 
-            {/* Pagination Responsive */}
             {variant !== 'accueil' && totalPages > 1 && (
                 <div className="flex justify-center mt-8 sm:mt-10 animate-fade-in w-full">
                     <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-3 sm:gap-4 bg-gray-50 dark:bg-fondSombre p-3 sm:p-2 rounded-xl sm:rounded-full border border-gray-100 dark:border-gray-800 shadow-sm shrink-0">

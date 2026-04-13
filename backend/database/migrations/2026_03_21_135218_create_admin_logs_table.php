@@ -6,22 +6,18 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
+    
  public function up()
 {
     Schema::create('admin_logs', function (Blueprint $table) {
         $table->id();
-        $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Le Super Admin
-        $table->string('action'); // 'ban', 'cloture', ou 'delete'
-        $table->string('description'); // Ex: "A banni l'utilisateur Jean"
+        $table->foreignId('user_id')->constrained()->onDelete('cascade'); 
+        $table->string('action'); 
+        $table->string('description'); 
         $table->timestamps();
     });
 }
-    /**
-     * Reverse the migrations.
-     */
+  
     public function down(): void
     {
         Schema::dropIfExists('admin_logs');

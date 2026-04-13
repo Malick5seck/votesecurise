@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
-    // fonction pour l'inscription 
     public function register(Request $request)
     {
         $request->validate([
@@ -38,7 +37,6 @@ class AuthController extends Controller
         ], 201);
     }
 
-    // fonction pour la connexion
     public function login(Request $request)
     {
         $request->validate([
@@ -74,7 +72,6 @@ class AuthController extends Controller
         ]);
     }
 
-    // fonction pour la déconnexion
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
@@ -84,7 +81,6 @@ class AuthController extends Controller
         ]);
     }
 
-    // fonction pour la demande de réinitialisation de mot de passe
     public function forgotPassword(Request $request)
     {
         $request->validate(['email' => 'required|email']);
@@ -104,7 +100,6 @@ class AuthController extends Controller
 
         Log::info("Demande de réinitialisation de mot de passe initiée pour : " . $user->email);
 
-        // 🔒 CORRECTION POINT 5 : On utilise config() au lieu de env() pour éviter les bugs en production
         $frontendUrl = config('app.frontend_url', 'http://localhost:5173');
         $resetLink = $frontendUrl . '/reset-password?token=' . $token . '&email=' . urlencode($user->email);
 
@@ -140,7 +135,6 @@ class AuthController extends Controller
         }
     }
 
-    // fonction pour la validation du nouveau mot de passe
     public function resetPassword(Request $request)
     {
         $request->validate([

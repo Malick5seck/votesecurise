@@ -329,16 +329,13 @@ export default function Dashboard() {
         try {
             await api.put(`/sondages/${sondageACloturer}/cloturer`, { motif: motifAction });
             
-            // ⚡ OPTIMISATION : Mise à jour optimiste (Instantanée)
-            const dateFinMaintenant = new Date().toISOString(); // On génère la date/heure actuelle
-            
-            // On met à jour le tableau React immédiatement pour changer l'affichage
+            const dateFinMaintenant = new Date().toISOString();
+
             const nvSondages = tousLesSondages.map(s => 
                 s.id === sondageACloturer ? { ...s, date_fin: dateFinMaintenant } : s
             );
             setTousLesSondages(nvSondages);
             
-            // On met à jour le cache mémoire pour éviter qu'il ne ramène l'ancienne date
             if (memoireAdmin) {
                 memoireAdmin.sondages = nvSondages;
             }
@@ -347,7 +344,6 @@ export default function Dashboard() {
             setSondageACloturer(null); 
             afficherToast("Sondage clôturé avec succès.");
 
-            // On recharge discrètement en arrière-plan pour mettre à jour le Journal d'Audit
             chargerDonneesAdmin(user.id); 
         } catch (err) { 
             afficherToast("Erreur lors de la clôture", 'error'); 

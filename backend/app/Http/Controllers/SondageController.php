@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User; // ⚡ Ajout pour récupérer le propriétaire du sondage
+use App\Models\User;
 use App\Models\Sondage;
 use App\Models\Question;
 use App\Models\Option;
@@ -11,9 +11,9 @@ use Illuminate\Http\Request;
 use App\Models\Vote;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
-use App\Mail\AdminNotificationMail; // ⚡ Ajout pour les emails
-use Illuminate\Support\Facades\Mail; // ⚡ Ajout pour les emails
-use Illuminate\Support\Facades\Log; // ⚡ Ajout pour les logs
+use App\Mail\AdminNotificationMail; 
+use Illuminate\Support\Facades\Mail; 
+use Illuminate\Support\Facades\Log; 
 
 class SondageController extends Controller
 {
@@ -22,10 +22,9 @@ class SondageController extends Controller
         $user = auth('sanctum')->user();
         
         $query = Sondage::select('id', 'user_id', 'titre', 'description', 'slug', 'est_anonyme', 'est_prive', 'date_debut', 'date_fin', 'created_at')
-                        ->withCount('votes', 'questions') // Ajout du count des questions pour un aperçu rapide
+                        ->withCount('votes', 'questions') 
                         ->latest();
 
-        // ⚡ OPTIMISATION 3 : Filtrage SQL ultra-rapide pour l'explorateur public
         if ($request->has('actifs_seulement')) {
             $maintenant = now();
             $sondages = $query->where('est_prive', false)
@@ -40,7 +39,6 @@ class SondageController extends Controller
             return response()->json($sondages);
         }
 
-        // Comportement classique pour le Centre de Contrôle (qui a besoin de TOUT voir)
         if ($user && $user->role === 'super_admin') {
             $sondages = $query->get();
         } elseif ($user) {
@@ -66,7 +64,6 @@ class SondageController extends Controller
             'date_fin' => 'nullable|date|after_or_equal:date_debut',
             'domaine_restreint' => 'nullable|string',
             'emails_autorises' => 'nullable|array',  
-            // 🔒 OPTIMISATION : On s'assure que si on a un tableau d'emails, ce sont bien des emails valides
             'emails_autorises.*' => 'email',
             'message_remerciement' => 'nullable|string',
             'questions' => 'required|array|min:1',
@@ -162,7 +159,6 @@ class SondageController extends Controller
         $totalVotes = $sondage->votes()->count();
         $statistiques = [];
 
-        // ⚡ OPTIMISATION 1 : On groupe les calculs en SQL pour éviter les requêtes N+1
         $questionIds = $sondage->questions->pluck('id');
 
         $reponsesCount = Reponse::select('option_id', DB::raw('count(*) as total'))
@@ -187,7 +183,6 @@ class SondageController extends Controller
             if (in_array($question->type, ['qcm', 'checkbox', 'likert', 'boolean', 'ranking', 'matrix'])) {
                 $optionsStats = [];
                 foreach ($question->options as $option) {
-                    // ⚡ On lit depuis la mémoire (0 requête SQL dans cette boucle !)
                     $count = $reponsesCount[$option->id] ?? 0;
                     
                     $optionsStats[] = [
@@ -200,7 +195,6 @@ class SondageController extends Controller
                 $statsQuestion['options'] = $optionsStats;
             } 
             elseif (in_array($question->type, ['text', 'number', 'date'])) {
-                // On garde les 10 dernières réponses textes pour ne pas saturer l'écran
                 $statsQuestion['reponses_textes'] = Reponse::where('question_id', $question->id)
                                                 ->whereNotNull('valeur_texte')
                                                 ->latest()
@@ -208,7 +202,6 @@ class SondageController extends Controller
                                                 ->pluck('valeur_texte');
             } 
             elseif (in_array($question->type, ['rating', 'slider'])) {
-                // ⚡ On lit la moyenne depuis la mémoire (0 requête SQL)
                 $moyenne = $ratingAverages[$question->id] ?? 0;
                 $statsQuestion['moyenne'] = $moyenne ? round($moyenne, 1) : 0;
             }
@@ -216,11 +209,10 @@ class SondageController extends Controller
             $statistiques[] = $statsQuestion;
         }
 
-        // ⚡ OPTIMISATION 2 : On limite le tableau détaillé aux 100 derniers participants (Protège la RAM)
         $votesDetail = $sondage->votes()
                                ->with(['user', 'reponses.option'])
-                               ->latest() // On prend les plus récents
-                               ->take(100) // Limite stricte
+                               ->latest() 
+                               ->take(100) 
                                ->get();
         
         $participants = $votesDetail->map(function ($vote) use ($sondage) {
@@ -279,7 +271,6 @@ class SondageController extends Controller
                     'updated_at' => now()
                 ]);
 
-                // 📩 On récupère le créateur pour lui envoyer un email
                 $createur = User::find($sondage->user_id);
                 if ($createur) {
                     try {
@@ -323,7 +314,6 @@ class SondageController extends Controller
             'updated_at' => now()
         ]);
 
-        // 📩 ENVOI D'EMAIL (Silent Fail)
         $createur = User::find($sondage->user_id);
         if ($createur) {
             try {

@@ -52,42 +52,35 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // --- 4. CRÉATION DES SONDAGES & DE LEURS 4 QUESTIONS ---
-        $sondagesData = []; // Pour mémoriser les questions de chaque sondage
+        $sondagesData = [];
         $titresSujets = ['La gestion de l\'eau', 'Les transports urbains', 'L\'éducation civique', 'Le développement agricole', 'L\'emploi des jeunes', 'La santé publique', 'L\'accès à internet', 'L\'énergie solaire', 'L\'assainissement', 'Le sport local'];
 
-        // Fonction interne pour générer 4 questions à un sondage
         $genererQuestions = function($sondageId) {
             $questions = [];
             
-            // Q1 : QCM
             $q1 = DB::table('questions')->insertGetId(['sondage_id' => $sondageId, 'titre' => 'Que pensez-vous de la situation actuelle ?', 'type' => 'qcm', 'obligatoire' => 1]);
             $opt1A = DB::table('options')->insertGetId(['question_id' => $q1, 'contenu' => 'Très satisfaisant']);
             $opt1B = DB::table('options')->insertGetId(['question_id' => $q1, 'contenu' => 'Passable']);
             $opt1C = DB::table('options')->insertGetId(['question_id' => $q1, 'contenu' => 'Inquiétant']);
             $questions[] = ['id' => $q1, 'type' => 'qcm', 'options' => [$opt1A, $opt1B, $opt1C]];
 
-            // Q2 : Boolean (Vrai/Faux)
             $q2 = DB::table('questions')->insertGetId(['sondage_id' => $sondageId, 'titre' => 'Faut-il appliquer une réforme d\'urgence ?', 'type' => 'boolean', 'obligatoire' => 1]);
             $opt2A = DB::table('options')->insertGetId(['question_id' => $q2, 'contenu' => 'Oui']);
             $opt2B = DB::table('options')->insertGetId(['question_id' => $q2, 'contenu' => 'Non']);
             $questions[] = ['id' => $q2, 'type' => 'boolean', 'options' => [$opt2A, $opt2B]];
 
-            // Q3 : QCM
             $q3 = DB::table('questions')->insertGetId(['sondage_id' => $sondageId, 'titre' => 'Quelle est la priorité absolue ?', 'type' => 'qcm', 'obligatoire' => 1]);
             $opt3A = DB::table('options')->insertGetId(['question_id' => $q3, 'contenu' => 'Budget']);
             $opt3B = DB::table('options')->insertGetId(['question_id' => $q3, 'contenu' => 'Organisation']);
             $opt3C = DB::table('options')->insertGetId(['question_id' => $q3, 'contenu' => 'Transparence']);
             $questions[] = ['id' => $q3, 'type' => 'qcm', 'options' => [$opt3A, $opt3B, $opt3C]];
 
-            // Q4 : Texte libre
             $q4 = DB::table('questions')->insertGetId(['sondage_id' => $sondageId, 'titre' => 'Avez-vous des recommandations ? (Optionnel)', 'type' => 'text', 'obligatoire' => 0]);
             $questions[] = ['id' => $q4, 'type' => 'text', 'options' => []];
 
             return $questions;
         };
 
-        // Génération des 25 Sondages pour AB
         for ($i = 1; $i <= 25; $i++) {
             $sujet = $titresSujets[array_rand($titresSujets)];
             $titre = "Avis sur $sujet (Sondage #$i)";
@@ -99,10 +92,9 @@ class DatabaseSeeder extends Seeder
                 'date_fin' => Carbon::now()->addDays(rand(-15, 20)), 
                 'created_at' => Carbon::now()->subDays(rand(1, 30)), 'updated_at' => Carbon::now(),
             ]);
-            $sondagesData[$sId] = $genererQuestions($sId); // On sauvegarde les questions pour les votes
+            $sondagesData[$sId] = $genererQuestions($sId); 
         }
 
-        // Quelques sondages pour 30 autres utilisateurs
         $utilisateursAleatoires = array_rand(array_flip($usersIds), 30);
         foreach ($utilisateursAleatoires as $uId) {
             $nbSondages = rand(1, 3);
@@ -121,7 +113,6 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // --- 5. GÉNÉRATION DES VOTES ET DES RÉPONSES LOGIQUES ---
         $tousLesVotants = array_merge([$userIdAb], $usersIds);
         $remarquesTexte = ['Il faut agir vite.', 'Très bonne initiative.', 'Je suis sceptique.', 'Bravo pour ce sondage.', 'On attend de voir les résultats.'];
 
@@ -140,7 +131,6 @@ class DatabaseSeeder extends Seeder
                     'updated_at' => Carbon::now(),
                 ]);
 
-                // 2. On crée les Réponses pour chaque question de ce sondage
                 $reponsesToInsert = [];
                 foreach ($questionsDuSondage as $q) {
                     $rep = [
@@ -152,10 +142,8 @@ class DatabaseSeeder extends Seeder
                     ];
 
                     if (in_array($q['type'], ['qcm', 'boolean'])) {
-                        // Pioche une option au hasard parmi celles de la question
                         $rep['option_id'] = $q['options'][array_rand($q['options'])];
                     } elseif ($q['type'] === 'text') {
-                        // 30% des gens laissent un commentaire texte
                         if (rand(1, 100) > 70) {
                             $rep['valeur_texte'] = $remarquesTexte[array_rand($remarquesTexte)];
                         }
@@ -163,7 +151,6 @@ class DatabaseSeeder extends Seeder
                     $reponsesToInsert[] = $rep;
                 }
                 
-                // Insertion en masse des réponses pour ce vote (Ultra rapide)
                 DB::table('reponses')->insert($reponsesToInsert);
             }
         }

@@ -1,11 +1,4 @@
 import React from 'react';
-/**
- * Composant unifié pour afficher une carte de sondage
- * @param {Object} props
- * @param {Object} props.sondage - Les données du sondage
- * @param {Function} props.onClick - Fonction appelée lors du clic sur la carte
- * @param {Boolean} [props.estRestreint=false] - Si vrai, affiche le badge "Votes restreints" (utile pour TousLesSondages)
- */
 export default function SondageCard({ sondage, onClick, estRestreint = false }) {
     
     const estNouveau = (dateCreation) => {

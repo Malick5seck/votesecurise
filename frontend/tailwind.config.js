@@ -4,17 +4,16 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: 'class', // Activation du mode sombre manuel
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        primaire: '#1e3a8a', // Bleu profond (Confiance)
-        secondaire: '#10b981', // Vert Émeraude (Action/Succès)
-        fond: '#f3f4f6', // Arrière-plan mode clair
-        fondSombre: '#0f172a', // Arrière-plan global mode sombre
-        carteSombre: '#1e293b', // Couleur unifiée pour Navbar et Footer en mode sombre
+        primaire: '#1e3a8a', 
+        secondaire: '#10b981', 
+        fond: '#f3f4f6',
+        fondSombre: '#0f172a', 
+        carteSombre: '#1e293b', 
       },
-      // 🔥 AJOUT DES ANIMATIONS FLUIDES ICI
       keyframes: {
         fadeIn: {
           '0%': { opacity: '0' },
@@ -30,7 +29,6 @@ export default {
         }
       },
       animation: {
-        // cubic-bezier(0.16, 1, 0.3, 1) donne un effet de décélération très doux à la fin
         'fade-in': 'fadeIn 0.4s ease-out forwards',
         'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         'scale-up': 'scaleUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',

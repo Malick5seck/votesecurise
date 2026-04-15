@@ -43,7 +43,6 @@ class DatabaseSeeder extends Seeder
             
             $usersIds[] = DB::table('users')->insertGetId([
                 'name' => $nomComplet,
-                // Email propre basé sur le nom (ex: amadou.ndiaye8@test.com)
                 'email' => strtolower(str_replace(' ', '.', $nomComplet)) . $i . '@test.com',
                 'password' => Hash::make('password'),
                 'role' => 'user',
@@ -83,7 +82,8 @@ class DatabaseSeeder extends Seeder
 
         for ($i = 1; $i <= 25; $i++) {
             $sujet = $titresSujets[array_rand($titresSujets)];
-            $titre = "Avis sur $sujet (Sondage #$i)";
+            // 👇 C'est ici que la modification a été faite !
+            $titre = "Avis sur $sujet"; 
             $sId = DB::table('sondages')->insertGetId([
                 'titre' => $titre,
                 'description' => "Enquête communautaire sur $sujet initiée par AB.",
